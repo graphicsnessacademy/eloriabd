@@ -10,18 +10,17 @@ export default function App() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetch('https://eloria-api.vercel.app/api/products')
-      .then((res) => res.json())
-      .then((data) => {
-        setProducts(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching data:", err);
-        setLoading(false);
-      });
-  }, []);
+useEffect(() => {
+
+  fetch('https://eloriabd.vercel.app/api/products') 
+    .then((res) => res.json())
+    .then((data) => {
+      console.log("Data received:", data);
+      setProducts(data);
+      setLoading(false);
+    })
+    .catch((err) => console.error("Fetch error:", err));
+}, []);
 
   if (loading) {
     return (
