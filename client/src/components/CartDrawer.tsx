@@ -2,10 +2,11 @@
 import { X, Plus, Minus, ShoppingBag, ArrowRight, Trash2 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-    const { cart, removeFromCart, updateCartQuantity } = useStore();
+    const { cart, removeFromCart, updateCartQuantity, user, setIsAuthOpen } = useStore();
+    const navigate = useNavigate();
 
     // Calculate subtotal based on price * quantity
     const subtotal = cart.reduce((acc: number, item: any) => acc + (item.price * (item.quantity || 1)), 0);
@@ -143,7 +144,17 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
                                     </div>
                                 </div>
 
-                                <button className="w-full bg-eloria-dark text-white py-5 rounded-full font-bold uppercase tracking-[0.25em] text-[10px] flex items-center justify-center gap-3 hover:bg-eloria-purple transition-all duration-500 shadow-xl group active:scale-95">
+                                <button
+                                    onClick={() => {
+                                        onClose();
+                                        if (!user) {
+                                            setIsAuthOpen(true);
+                                        } else {
+                                            navigate('/checkout');
+                                        }
+                                    }}
+                                    className="w-full bg-eloria-dark text-white py-5 rounded-full font-bold uppercase tracking-[0.25em] text-[10px] flex items-center justify-center gap-3 hover:bg-eloria-purple transition-all duration-500 shadow-xl group active:scale-95"
+                                >
                                     Proceed to Checkout
                                     <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
                                 </button>

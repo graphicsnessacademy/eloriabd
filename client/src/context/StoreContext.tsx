@@ -5,6 +5,14 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const StoreContext = createContext<any>(null);
 
+// Normalize cart items coming from MongoDB (productId) → frontend format (_id)
+const normalizeCart = (cartItems: any[]) =>
+  cartItems.map((item: any) => ({
+    ...item,
+    _id: item._id || item.productId,
+    id: item._id || item.productId,
+  }));
+
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [cart, setCart] = useState<any[]>([]);
@@ -37,9 +45,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             return res.json();
           })
           .then(userData => {
-            setUser(userData);
+          setUser(userData);
             if (userData.wishlist) setWishlist(userData.wishlist);
-            if (userData.cart) setCart(userData.cart);
+            if (userData.cart) setCart(normalizeCart(userData.cart));
           })
           .catch((err) => {
             console.error("Session sync issue:", err);
@@ -145,7 +153,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('eloria_token', data.token);
 
     if (data.user.wishlist) setWishlist(data.user.wishlist);
-    if (data.user.cart) setCart(data.user.cart);
+    if (data.user.cart) setCart(normalizeCart(data.user.cart));
 
     localStorage.removeItem('eloria_wishlist');
     localStorage.removeItem('eloria_cart');

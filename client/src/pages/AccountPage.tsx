@@ -61,11 +61,35 @@ function DashboardTab({ user, onTabChange }: { user: any; onTabChange: (t: Tab) 
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState({ name: user?.name || '', phone: user?.phone || '' });
     const [isSaving, setIsSaving] = useState(false);
+    const [orderCount, setOrderCount] = useState<number | string>('...');
+
+    useEffect(() => {
+        if (!user || (!user._id && !user.id)) return;
+        const fetchOrderCount = async () => {
+            try {
+                const token = localStorage.getItem('eloria_token');
+                const userId = user._id || user.id;
+                const API_URL = 'https://eloriabd.vercel.app';
+                const res = await fetch(`${API_URL}/api/orders/user/${userId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setOrderCount(data.length);
+                } else {
+                    setOrderCount(0);
+                }
+            } catch {
+                setOrderCount(0);
+            }
+        };
+        fetchOrderCount();
+    }, [user]);
 
     const stats = [
         { label: 'Cart Items', value: cart.length, tab: 'cart' as Tab, icon: ShoppingCart, color: 'bg-[#f0eeff] text-[#534AB7]' },
         { label: 'Wishlist', value: wishlist.length, tab: 'wishlist' as Tab, icon: Heart, color: 'bg-[#fff0f5] text-[#D4537E]' },
-        { label: 'Orders', value: '...', tab: 'orders' as Tab, icon: Package, color: 'bg-[#f0f7ff] text-[#3b82f6]' },
+        { label: 'Orders', value: orderCount, tab: 'orders' as Tab, icon: Package, color: 'bg-[#f0f7ff] text-[#3b82f6]' },
     ];
 
     const handleLogout = () => {
