@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useMemo } from 'react';
 import ProductCard from '../components/ProductCard';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function SearchPage({ products }: { products: any[] }) {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';

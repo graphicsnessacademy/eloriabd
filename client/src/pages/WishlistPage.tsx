@@ -3,6 +3,7 @@ import { useStore } from '../context/StoreContext';
 import ProductCard from '../components/ProductCard';
 import { Heart, ArrowRight } from 'lucide-react';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function WishlistPage({ products }: { products: any[] }) {
     const { wishlist } = useStore();
 

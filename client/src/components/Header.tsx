@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Heart, ShoppingBag, User, LogOut } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import SearchOverlay from './SearchOverlay';
 import AuthModal from './AuthModal';
@@ -22,6 +22,17 @@ export default function Header() {
   } = useStore();
 
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleUserClick = () => {
+    if (user) {
+      // If logged in, go to Dashboard
+      navigate('/account');
+    } else {
+      // If not logged in, open Login Popup
+      setIsAuthOpen(true);
+    }
+  };
 
   // 1. SCROLL LOGIC: Header turns from transparent to white on scroll
   useEffect(() => {
@@ -44,6 +55,7 @@ export default function Header() {
 
 
   // 3. CART COUNT: Sum of all item quantities
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cartCount = cart.reduce((acc: number, item: any) => acc + (item.quantity || 1), 0);
 
   return (
@@ -69,11 +81,11 @@ export default function Header() {
             {/* AUTH / USER PROFILE */}
             <div className="group relative">
               <button
-                onClick={() => user ? null : setIsAuthOpen(true)}
+                onClick={handleUserClick}
                 className="p-2 hover:text-eloria-purple transition-colors flex items-center gap-1"
                 aria-label="User Account"
               >
-                <User className={`w-5 h-5 ${user ? 'text-eloria-purple' : ''}`} />
+                <User className={`w-5 h-5 ${user ? 'text-eloria-purple' : 'text-eloria-dark'}`} />
                 {user && <span className="hidden lg:block text-[10px] font-bold uppercase tracking-widest">Account</span>}
               </button>
 

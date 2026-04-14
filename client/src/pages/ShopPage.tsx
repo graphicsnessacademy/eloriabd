@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 
 interface ShopPageProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   products: any[];
 }
 
@@ -27,7 +28,7 @@ export default function ShopPage({ products = [] }: ShopPageProps) {
   // 2. ADVANCED FILTERING & SORTING LOGIC
   const filteredProducts = useMemo(() => {
     // A. Filter logic
-    let result = products.filter((p) => {
+    const result = products.filter((p) => {
       // URL Category Match
       let categoryMatch = true;
       if (category && category !== 'all') {

@@ -1,5 +1,20 @@
 import { useState, useEffect } from 'react';
 
+const TimeUnit = ({ value, label }: { value: number, label: string }) => (
+    <div className="flex flex-col items-center">
+        <div className="bg-eloria-dark text-white w-16 h-16 md:w-24 md:h-24 rounded-2xl flex items-center justify-center shadow-2xl relative overflow-hidden group">
+            <div className="absolute inset-0 bg-eloria-purple opacity-0 group-hover:opacity-20 transition-opacity duration-500"></div>
+            <span className="text-2xl md:text-4xl font-serif font-bold relative z-10">
+                {value.toString().padStart(2, '0')}
+            </span>
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-eloria-purple/30"></div>
+        </div>
+        <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.3em] text-eloria-dark/50 mt-4">
+            {label}
+        </span>
+    </div>
+);
+
 export default function CountdownBanner() {
     // Initialize timer (Set to 24 hours for demo, but can be a fixed date)
     const [timeLeft, setTimeLeft] = useState({
@@ -21,25 +36,6 @@ export default function CountdownBanner() {
         }, 1000);
         return () => clearInterval(timer);
     }, []);
-
-    const TimeUnit = ({ value, label }: { value: number, label: string }) => (
-        <div className="flex flex-col items-center">
-            <div className="bg-eloria-dark text-white w-16 h-16 md:w-24 md:h-24 rounded-2xl flex items-center justify-center shadow-2xl relative overflow-hidden group">
-                {/* Subtle background glow on hover */}
-                <div className="absolute inset-0 bg-eloria-purple opacity-0 group-hover:opacity-20 transition-opacity duration-500"></div>
-
-                <span className="text-2xl md:text-4xl font-serif font-bold relative z-10">
-                    {value.toString().padStart(2, '0')}
-                </span>
-
-                {/* Bottom decorative line */}
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-eloria-purple/30"></div>
-            </div>
-            <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.3em] text-eloria-dark/50 mt-4">
-                {label}
-            </span>
-        </div>
-    );
 
     return (
         <section className="py-24 bg-white relative overflow-hidden">

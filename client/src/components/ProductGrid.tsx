@@ -2,6 +2,7 @@ import ProductCard from './ProductCard';
 
 interface ProductGridProps {
   title: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   products: any[];
   maxItems: number;
   columns?: number;

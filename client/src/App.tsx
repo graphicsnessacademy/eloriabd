@@ -7,6 +7,9 @@ import ShopPage from './pages/ShopPage';
 import SearchPage from './pages/SearchPage';
 import WishlistPage from './pages/WishlistPage';
 import ProductDetailPage from './pages/ProductDetailPage';
+import AccountPage from './pages/AccountPage';
+import CheckoutPage from './pages/CheckoutPage';
+
 
 export default function App() {
   const [products, setProducts] = useState([]);
@@ -46,6 +49,9 @@ export default function App() {
           <Route path="/search" element={<SearchPage products={products} />} />
           <Route path="/wishlist" element={<WishlistPage products={products} />} />
           <Route path="/product/:id" element={<ProductDetailPage products={products} />} />
+          <Route path="/account" element={<AccountPage products={products} />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+
         </Routes>
 
         <Footer />

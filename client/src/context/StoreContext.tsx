@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const StoreContext = createContext<any>(null);
@@ -8,24 +11,51 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isInitialDbLoaded, setIsInitialDbLoaded] = useState(false);
 
-  // 1. INITIAL LOAD: Pull from LocalStorage on mount
   useEffect(() => {
     try {
       const savedWish = localStorage.getItem('eloria_wishlist');
       const savedCart = localStorage.getItem('eloria_cart');
+      const token = localStorage.getItem('eloria_token');
 
       if (savedWish) setWishlist(JSON.parse(savedWish));
       if (savedCart) setCart(JSON.parse(savedCart));
-      
-      // If a token exists, you could potentially fetch user data here
-      // For now, we assume user state is set via loginSync
+
+      if (token) {
+        const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://eloriabd.vercel.app';
+        fetch(`${API_URL}/api/user/profile`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+          .then(res => {
+            if (res.status === 401) {
+              localStorage.removeItem('eloria_token');
+              throw new Error('Session Expired');
+            }
+            if (!res.ok) throw new Error('Server issues, maintaining token state');
+            return res.json();
+          })
+          .then(userData => {
+            setUser(userData);
+            if (userData.wishlist) setWishlist(userData.wishlist);
+            if (userData.cart) setCart(userData.cart);
+          })
+          .catch((err) => {
+            console.error("Session sync issue:", err);
+          })
+          .finally(() => {
+            setIsInitialDbLoaded(true);
+          });
+      } else {
+        setIsInitialDbLoaded(true);
+      }
     } catch (error) {
       console.error("Failed to parse storage:", error);
+      setIsInitialDbLoaded(true);
     }
   }, []);
 
-  // 2. PERSISTENCE: Save to LocalStorage ONLY if user is a Guest
   useEffect(() => {
     if (!user) {
       localStorage.setItem('eloria_wishlist', JSON.stringify(wishlist));
@@ -33,46 +63,74 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, [wishlist, cart, user]);
 
-  // --- WISHLIST ACTIONS ---
-const toggleWishlist = (productId: string) => {
+  useEffect(() => {
+    if (isInitialDbLoaded && user) {
+      const timeout = setTimeout(() => {
+        const token = localStorage.getItem('eloria_token');
+        const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://eloriabd.vercel.app';
+        fetch(`${API_URL}/api/user/update`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ wishlist, cart })
+        }).catch(console.error);
+      }, 500);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [wishlist, cart, user, isInitialDbLoaded]);
+
+  const toggleWishlist = (productId: string) => {
     setWishlist((prev) =>
-      prev.includes(productId) 
-        ? prev.filter((id) => id !== productId) 
+      prev.includes(productId)
+        ? prev.filter((id) => id !== productId)
         : [...prev, productId]
     );
-};
+  };
 
   const removeFromWishlist = (productId: string) => {
     setWishlist((prev) => prev.filter((id) => id !== productId));
   };
 
-  // --- CART ACTIONS ---
-
   const addToCart = (product: any) => {
     setCart((prev) => {
       const productId = product._id || product.id;
-      const exists = prev.find((item: any) => (item._id || item.id) === productId);
+      const selectedSize = product.size || 'Standard';
+      const selectedColor = product.color || 'Default';
 
-      if (exists) {
-        return prev.map((item: any) =>
-          (item._id || item.id) === productId 
-            ? { ...item, quantity: (item.quantity || 1) + 1 } 
-            : item
-        );
+      const existingItemIndex = prev.findIndex((item: any) =>
+        (item._id || item.id) === productId &&
+        item.size === selectedSize &&
+        item.color === selectedColor
+      );
+
+      if (existingItemIndex !== -1) {
+        const updatedCart = [...prev];
+        updatedCart[existingItemIndex] = {
+          ...updatedCart[existingItemIndex],
+          quantity: (updatedCart[existingItemIndex].quantity || 1) + (product.quantity || 1)
+        };
+        return updatedCart;
       }
-      return [...prev, { ...product, quantity: 1 }];
-    });
-};
 
-  const removeFromCart = (productId: string) => {
-    setCart((prev) => prev.filter((item) => (item._id || item.id) !== productId));
+      return [...prev, { ...product, quantity: product.quantity || 1, size: selectedSize, color: selectedColor }];
+    });
+
+    setIsCartOpen(true);
   };
 
-  const updateCartQuantity = (productId: string, newQty: number) => {
-    if (newQty < 1) return removeFromCart(productId);
+  const removeFromCart = (productId: string, size: string, color: string) => {
+    setCart((prev) => prev.filter((item) =>
+      !((item._id || item.id) === productId && item.size === size && item.color === color)
+    ));
+  };
+
+  const updateCartQuantity = (productId: string, size: string, color: string, newQty: number) => {
+    if (newQty < 1) return removeFromCart(productId, size, color);
     setCart((prev) =>
       prev.map((item) =>
-        (item._id || item.id) === productId ? { ...item, quantity: newQty } : item
+        (item._id || item.id) === productId && item.size === size && item.color === color
+          ? { ...item, quantity: newQty }
+          : item
       )
     );
   };
@@ -82,22 +140,13 @@ const toggleWishlist = (productId: string) => {
     if (!user) localStorage.removeItem('eloria_cart');
   };
 
-  // --- AUTH ACTIONS ---
-
   const loginSync = (data: any) => {
-    // 1. Set User Profile
     setUser(data.user);
-    
-    // 2. Set Token
     localStorage.setItem('eloria_token', data.token);
 
-    // 3. Sync Logic: 
-    // Usually, the backend handles merging and returns the final combined arrays.
-    // If the backend returns merged data, we use it directly:
     if (data.user.wishlist) setWishlist(data.user.wishlist);
     if (data.user.cart) setCart(data.user.cart);
 
-    // 4. Clean up Guest storage
     localStorage.removeItem('eloria_wishlist');
     localStorage.removeItem('eloria_cart');
   };
@@ -111,18 +160,23 @@ const toggleWishlist = (productId: string) => {
     localStorage.removeItem('eloria_cart');
   };
 
-  return (
-    <StoreContext.Provider value={{ 
-      // State
-      wishlist, 
-      cart, 
-      user, 
-      isAuthOpen, 
-      isSearchOpen,
+  const updateUserProfile = (updatedData: any) => {
+    setUser((prev: any) => ({ ...prev, ...updatedData }));
+  };
 
-      // State Setters (UI Control)
+  return (
+    <StoreContext.Provider value={{
+      wishlist,
+      cart,
+      user,
+      isAuthOpen,
+      isSearchOpen,
+      isCartOpen,
+
+      // State Setters
       setIsAuthOpen,
       setIsSearchOpen,
+      setIsCartOpen,
 
       // Logic Functions
       toggleWishlist,
@@ -132,7 +186,8 @@ const toggleWishlist = (productId: string) => {
       updateCartQuantity,
       clearCart,
       loginSync,
-      logout
+      logout,
+      updateUserProfile
     }}>
       {children}
     </StoreContext.Provider>

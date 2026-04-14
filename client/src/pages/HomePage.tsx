@@ -3,6 +3,7 @@ import TrustBar from '../components/TrustBar';
 import ProductGrid from '../components/ProductGrid';
 
 interface HomePageProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   products: any[];
 }
 

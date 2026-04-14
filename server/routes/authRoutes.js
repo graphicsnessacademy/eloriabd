@@ -6,14 +6,38 @@ const jwt = require('jsonwebtoken');
 
 // SIGNUP ROUTE
 router.post('/signup', async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, name, phone, guestWishlist = [], guestCart = [] } = req.body;
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ email, password: hashedPassword });
+        
+        // Merge immediately for signup
+        const newCart = guestCart.map(g => ({
+            productId: g._id,
+            quantity: g.quantity || 1
+        }));
+
+        const user = new User({ 
+            email, 
+            password: hashedPassword, 
+            name, 
+            phone,
+            wishlist: guestWishlist, // Brand new account, no dupes to worry about
+            cart: newCart
+        });
+
         await user.save();
-        res.status(201).json({ message: "User created successfully" });
+        
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
+        
+        res.status(201).json({ 
+            token,
+            user: { email: user.email, name: user.name, phone: user.phone, wishlist: user.wishlist, cart: user.cart, addresses: user.addresses }
+        });
     } catch (err) {
-        res.status(500).json({ error: "Email already exists" });
+        if (err.code === 11000) {
+            return res.status(400).json({ message: 'Email already exists' });
+        }
+        res.status(500).json({ message: 'Failed to create account. Please try again.' });
     }
 });
 
@@ -49,10 +73,10 @@ router.post('/login', async (req, res) => {
 
         res.json({
             token,
-            user: { email: user.email, wishlist: user.wishlist, cart: user.cart }
+            user: { email: user.email, name: user.name, phone: user.phone, wishlist: user.wishlist, cart: user.cart, addresses: user.addresses }
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ message: 'An unexpected error occurred. Please try again.' });
     }
 });
 

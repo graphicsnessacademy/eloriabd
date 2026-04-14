@@ -6,7 +6,7 @@ require('dotenv').config();
 const app = express();
 app.use(cors({
   origin: ["https://eloriabd-shop.vercel.app", "http://localhost:5173"],
-  methods: ["GET", "POST"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
 app.use(express.json());
@@ -38,9 +38,13 @@ app.use(async (req, res, next) => {
 
 const productRoutes = require('./routes/productRoutes');
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.get('/', (req, res) => {
   res.send('ELORIA API IS LIVE');
