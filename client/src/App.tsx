@@ -12,14 +12,19 @@ export default function App() {
 
 useEffect(() => {
 
-  fetch('https://eloriabd.vercel.app/api/products') 
-    .then((res) => res.json())
+   fetch('https://eloriabd.vercel.app/api/products') 
+    .then((res) => {
+      if (!res.ok) throw new Error("Network response was not ok");
+      return res.json();
+    })
     .then((data) => {
-      console.log("Data received:", data);
       setProducts(data);
       setLoading(false);
     })
-    .catch((err) => console.error("Fetch error:", err));
+    .catch((err) => {
+      console.error("FETCH ERROR:", err);
+      setLoading(false);
+    });
 }, []);
 
   if (loading) {
