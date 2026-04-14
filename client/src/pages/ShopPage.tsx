@@ -7,72 +7,83 @@ interface ShopPageProps {
   products: any[];
 }
 
-export default function ShopPage({ products }: ShopPageProps) {
+export default function ShopPage({ products = [] }: ShopPageProps) {
   const { category } = useParams();
   const navigate = useNavigate();
 
   // States for filters
   const [priceRange, setPriceRange] = useState(10000);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [sortOption, setSortOption] = useState('Latest');
   const [openFilters, setOpenFilters] = useState({ price: true, type: true, size: true });
 
   // 1. DYNAMIC HEADER TITLE LOGIC
-  // Converts "new-arrival" -> "NEW ARRIVAL" or "t-shirt" -> "T-SHIRT"
   const getPageTitle = () => {
     if (!category || category === 'all') return "ALL COLLECTIONS";
+    // Converts "new-arrival" -> "NEW ARRIVAL"
     return category.replace(/-/g, ' ').toUpperCase();
   };
 
-  // 2. ADVANCED SEARCH & FILTER LOGIC
+  // 2. ADVANCED FILTERING & SORTING LOGIC
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      // Logic A: URL Category Match (Acts like a search keyword)
+    // A. Filter logic
+    let result = products.filter((p) => {
+      // URL Category Match
       let categoryMatch = true;
       if (category && category !== 'all') {
         const searchKey = category.toLowerCase();
-        
         if (searchKey === 'new-arrival') {
-          // Show products marked as New
           categoryMatch = p.isNewProduct === true || p.category?.toLowerCase() === 'new arrival';
         } else if (searchKey === 'best-seller') {
-          // Show products marked as Best Seller
           categoryMatch = p.isBestSeller === true || p.category?.toLowerCase() === 'best seller';
         } else {
-          // Match by exact category name (e.g., "kurti" or "t-shirt")
           categoryMatch = p.category?.toLowerCase().replace(/\s+/g, '-') === searchKey;
         }
       }
 
-      // Logic B: Sidebar Price Slider
+      // Sidebar Price Filter
       const priceMatch = p.price <= priceRange;
 
-      // Logic C: Sidebar Checkboxes
+      // Sidebar Type Checkboxes
       const typeMatch = selectedTypes.length > 0 
         ? selectedTypes.includes(p.category) 
         : true;
 
       return categoryMatch && priceMatch && typeMatch;
     });
-  }, [products, category, priceRange, selectedTypes]);
+
+    // B. Sort logic
+    if (sortOption === 'Price: Low to High') {
+      result.sort((a, b) => a.price - b.price);
+    } else if (sortOption === 'Price: High to Low') {
+      result.sort((a, b) => b.price - a.price);
+    } else {
+      // Default: Latest (by ID)
+      result.sort((a, b) => b._id.localeCompare(a._id));
+    }
+
+    return result;
+  }, [products, category, priceRange, selectedTypes, sortOption]);
 
   // Handle Filter Toggles
   const toggleFilter = (section: 'price' | 'type' | 'size') => {
     setOpenFilters(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // RESET FUNCTION: Clears filters and URL
+  // RESET FUNCTION: Clears everything
   const handleReset = () => {
     setPriceRange(10000);
     setSelectedTypes([]);
+    setSortOption('Latest');
     navigate('/shop'); 
   };
 
   return (
-    <div className="pt-[72px] bg-white">
+    <div className="pt-[72px] bg-white min-h-screen">
       {/* --- DYNAMIC PAGE HEADER --- */}
       <div className="bg-[#f3f4f7] py-14 px-6 border-b border-gray-100">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-slate-900 tracking-tight transition-all duration-500">
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-slate-900 tracking-tight">
             {getPageTitle()}
           </h1>
           <div className="flex items-center gap-2 mt-4 text-[10px] text-gray-400 font-bold uppercase tracking-[0.3em]">
@@ -146,7 +157,6 @@ export default function ShopPage({ products }: ShopPageProps) {
                         />
                         <span className="text-sm text-gray-600 group-hover:text-black transition-colors">{type}</span>
                       </div>
-                      <span className="text-[10px] text-gray-300 font-bold">(24)</span>
                     </label>
                   ))}
                 </div>
@@ -166,7 +176,6 @@ export default function ShopPage({ products }: ShopPageProps) {
                         <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black" />
                         <span className="text-sm text-gray-600 group-hover:text-black transition-colors">{size}</span>
                       </div>
-                      <span className="text-[10px] text-gray-300 font-bold">(12)</span>
                     </label>
                   ))}
                 </div>
@@ -179,12 +188,16 @@ export default function ShopPage({ products }: ShopPageProps) {
         <div className="flex-grow">
           <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-8">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
-              Showing 1–{filteredProducts.length} of {filteredProducts.length} results
+              Showing {filteredProducts.length} results
             </p>
             
             <div className="flex items-center gap-4">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sort By</span>
-              <select className="text-xs font-bold border-none bg-transparent focus:ring-0 cursor-pointer uppercase tracking-tighter outline-none">
+              <select 
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
+                className="text-xs font-bold border-none bg-transparent focus:ring-0 cursor-pointer uppercase tracking-tighter outline-none"
+              >
                 <option>Latest</option>
                 <option>Price: Low to High</option>
                 <option>Price: High to Low</option>
@@ -192,17 +205,16 @@ export default function ShopPage({ products }: ShopPageProps) {
             </div>
           </div>
 
-          {/* Optimized Grid Layout */}
           {filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
               {filteredProducts.map(p => (
-                <ProductCard key={p.id} product={p} />
+                <ProductCard key={p.id || p._id} product={p} />
               ))}
             </div>
           ) : (
             <div className="py-32 text-center">
-              <p className="text-xl font-serif text-gray-400 italic">No products found for this search.</p>
-              <button onClick={handleReset} className="mt-4 text-eloria-purple text-xs font-bold uppercase tracking-widest">Clear search filters</button>
+              <p className="text-xl font-serif text-gray-400 italic">No products found for this selection.</p>
+              <button onClick={handleReset} className="mt-4 text-eloria-purple text-xs font-bold uppercase tracking-widest underline">Clear search filters</button>
             </div>
           )}
         </div>

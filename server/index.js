@@ -4,7 +4,11 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: ["https://eloriabd-shop.vercel.app", "http://localhost:5173"],
+  methods: ["GET", "POST"],
+  credentials: true
+}));
 app.use(express.json());
 
 // Optimized Connection Logic for Vercel
@@ -15,7 +19,7 @@ const connectDB = async () => {
 
   // REMOVED: useNewUrlParser and useUnifiedTopology
   const db = await mongoose.connect(process.env.MONGODB_URI, {
-    serverSelectionTimeoutMS: 5000, 
+    serverSelectionTimeoutMS: 5000,
   });
 
   cachedDb = db;

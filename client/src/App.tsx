@@ -9,24 +9,20 @@ import SearchPage from './pages/SearchPage';
 export default function App() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+const API_URL = 'https://eloriabd.vercel.app'; 
 
 useEffect(() => {
-
-   fetch('https://eloriabd.vercel.app/api/products') 
-    .then((res) => {
-      if (!res.ok) throw new Error("Network response was not ok");
-      return res.json();
-    })
-    .then((data) => {
+  fetch(`${API_URL}/api/products`)
+    .then(res => res.json())
+    .then(data => {
       setProducts(data);
       setLoading(false);
     })
-    .catch((err) => {
-      console.error("FETCH ERROR:", err);
+    .catch(err => {
+      console.error("Fetch Error:", err);
       setLoading(false);
     });
 }, []);
-
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center font-serif text-eloria-purple text-xl animate-pulse">
