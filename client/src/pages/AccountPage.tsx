@@ -225,23 +225,13 @@ function DashboardTab({ user, onTabChange }: { user: any; onTabChange: (t: Tab) 
 // TAB: Address
 // ─────────────────────────────────────────────
 function AddressTab() {
-    const [addresses, setAddresses] = useState<Address[]>([
-        {
-            id: '1',
-            label: 'Home',
-            recipientName: '',
-            contact: '',
-            country: 'Bangladesh',
-            district: '',
-            area: '',
-            postCode: '',
-            address: '',
-            isDefault: true,
-        }
-    ]);
+    const { user, updateUserProfile } = useStore();
     const [showForm, setShowForm] = useState(false);
-    const [editId, setEditId] = useState<string | null>(null);
+    const [editIndex, setEditIndex] = useState<number | null>(null);
     const [saved, setSaved] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const addresses: Address[] = user?.addresses || [];
 
     const emptyForm: Omit<Address, 'id'> = {
         label: 'Home', recipientName: '', contact: '',
@@ -249,29 +239,65 @@ function AddressTab() {
     };
     const [form, setForm] = useState<Omit<Address, 'id'>>(emptyForm);
 
-    const handleSave = () => {
-        if (!form.recipientName || !form.contact || !form.district || !form.area || !form.address) return;
-        if (editId) {
-            setAddresses(prev => prev.map(a => a.id === editId ? { ...form, id: editId } : a));
-        } else {
-            setAddresses(prev => [...prev, { ...form, id: Date.now().toString() }]);
+    const API_URL = 'https://eloriabd.vercel.app';
+
+    const syncAddresses = async (newAddresses: Address[]) => {
+        setIsSaving(true);
+        try {
+            const token = localStorage.getItem('eloria_token');
+            const res = await fetch(`${API_URL}/api/user/update`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ addresses: newAddresses })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                updateUserProfile({ addresses: data.user.addresses });
+                setSaved(true);
+                setTimeout(() => setSaved(false), 2500);
+            } else {
+                alert('Failed to save address.');
+            }
+        } catch {
+            alert('Network error while saving address.');
+        } finally {
+            setIsSaving(false);
         }
-        setShowForm(false);
-        setEditId(null);
-        setForm(emptyForm);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2500);
     };
 
-    const handleEdit = (a: Address) => {
+    const handleSave = async () => {
+        if (!form.recipientName || !form.contact || !form.district || !form.area || !form.address) return;
+        
+        let newAddresses: Address[];
+        if (editIndex !== null) {
+            newAddresses = addresses.map((a, i) => i === editIndex ? { ...form, id: a.id } as Address : a);
+        } else {
+            const newAddr = { ...form, id: Date.now().toString(), isDefault: addresses.length === 0 } as Address;
+            newAddresses = [...addresses, newAddr];
+        }
+        
+        await syncAddresses(newAddresses);
+        setShowForm(false);
+        setEditIndex(null);
+        setForm(emptyForm);
+    };
+
+    const handleEdit = (idx: number) => {
+        const a = addresses[idx];
         setForm({ label: a.label, recipientName: a.recipientName, contact: a.contact, country: a.country, district: a.district, area: a.area, postCode: a.postCode, address: a.address });
-        setEditId(a.id);
+        setEditIndex(idx);
         setShowForm(true);
     };
 
-    const handleDelete = (id: string) => setAddresses(prev => prev.filter(a => a.id !== id));
+    const handleDelete = async (idx: number) => {
+        const newAddresses = addresses.filter((_, i) => i !== idx);
+        await syncAddresses(newAddresses);
+    };
 
-    const setDefault = (id: string) => setAddresses(prev => prev.map(a => ({ ...a, isDefault: a.id === id })));
+    const setDefault = async (idx: number) => {
+        const newAddresses = addresses.map((a, i) => ({ ...a, isDefault: i === idx }));
+        await syncAddresses(newAddresses);
+    };
 
     const inputCls = "w-full border border-gray-200 rounded-sm px-3 py-2.5 text-xs text-gray-800 placeholder-gray-300 focus:outline-none focus:border-[#534AB7] transition-colors bg-white";
     const labelCls = "block text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-1.5";
@@ -290,8 +316,8 @@ function AddressTab() {
 
             {/* Address cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {addresses.map(addr => (
-                    <div key={addr.id} className={`relative border rounded-sm p-4 transition-all ${addr.isDefault ? 'border-[#534AB7]/40 bg-[#534AB7]/3' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
+                {addresses.map((addr, idx) => (
+                    <div key={addr.id || idx} className={`relative border rounded-sm p-4 transition-all ${addr.isDefault ? 'border-[#534AB7]/40 bg-[#534AB7]/3' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
                         {addr.isDefault && (
                             <span className="absolute top-3 right-3 text-[8px] font-extrabold uppercase tracking-widest bg-[#534AB7] text-white px-2 py-0.5 rounded-sm">Default</span>
                         )}
@@ -312,11 +338,11 @@ function AddressTab() {
                             <p className="text-xs text-gray-400 italic">No details yet — click edit to fill in.</p>
                         )}
                         <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-100">
-                            <button onClick={() => handleEdit(addr)} className="text-[9px] font-bold uppercase tracking-widest text-[#534AB7] hover:underline">Edit</button>
+                            <button onClick={() => handleEdit(idx)} className="text-[9px] font-bold uppercase tracking-widest text-[#534AB7] hover:underline">Edit</button>
                             {!addr.isDefault && (
                                 <>
-                                    <button onClick={() => setDefault(addr.id)} className="text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-700">Set Default</button>
-                                    <button onClick={() => handleDelete(addr.id)} className="ml-auto text-[9px] font-bold uppercase tracking-widest text-red-400 hover:text-red-600">
+                                    <button onClick={() => setDefault(idx)} className="text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-700">Set Default</button>
+                                    <button onClick={() => handleDelete(idx)} className="ml-auto text-[9px] font-bold uppercase tracking-widest text-red-400 hover:text-red-600">
                                         <Trash2 className="w-3 h-3" />
                                     </button>
                                 </>
@@ -327,7 +353,7 @@ function AddressTab() {
 
                 {/* Add new card */}
                 <button
-                    onClick={() => { setForm(emptyForm); setEditId(null); setShowForm(true); }}
+                    onClick={() => { setForm(emptyForm); setEditIndex(null); setShowForm(true); }}
                     className="border-2 border-dashed border-gray-200 rounded-sm p-4 flex flex-col items-center justify-center gap-2 hover:border-[#534AB7]/40 hover:bg-[#534AB7]/3 transition-all group min-h-[140px]"
                 >
                     <div className="w-9 h-9 rounded-full bg-gray-100 group-hover:bg-[#534AB7]/10 flex items-center justify-center transition-colors">
@@ -342,14 +368,13 @@ function AddressTab() {
                 <div className="border border-[#534AB7]/20 rounded-sm bg-[#534AB7]/3 p-5 space-y-4">
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="text-xs font-extrabold uppercase tracking-[0.3em] text-gray-700">
-                            {editId ? 'Edit Address' : 'New Address'}
+                            {editIndex !== null ? 'Edit Address' : 'New Address'}
                         </h3>
-                        <button onClick={() => { setShowForm(false); setEditId(null); }}>
+                        <button onClick={() => { setShowForm(false); setEditIndex(null); }}>
                             <X className="w-4 h-4 text-gray-400 hover:text-gray-700" />
                         </button>
                     </div>
 
-                    {/* Label toggle */}
                     <div>
                         <label className={labelCls}>Address Type</label>
                         <div className="flex gap-2">
@@ -400,10 +425,10 @@ function AddressTab() {
                     </div>
 
                     <div className="flex gap-3 pt-1">
-                        <button onClick={handleSave} className="flex-1 bg-[#534AB7] text-white text-[10px] font-bold uppercase tracking-widest py-3 rounded-sm hover:bg-[#3d3599] transition-colors active:scale-[0.98]">
-                            Save Address
+                        <button onClick={handleSave} disabled={isSaving} className="flex-1 bg-[#534AB7] text-white text-[10px] font-bold uppercase tracking-widest py-3 rounded-sm hover:bg-[#3d3599] transition-colors active:scale-[0.98] disabled:opacity-50">
+                            {isSaving ? 'Saving...' : 'Save Address'}
                         </button>
-                        <button onClick={() => { setShowForm(false); setEditId(null); }} className="px-6 border border-gray-200 text-[10px] font-bold uppercase tracking-widest text-gray-500 rounded-sm hover:bg-gray-50 transition-colors">
+                        <button onClick={() => { setShowForm(false); setEditIndex(null); }} className="px-6 border border-gray-200 text-[10px] font-bold uppercase tracking-widest text-gray-500 rounded-sm hover:bg-gray-50 transition-colors">
                             Cancel
                         </button>
                     </div>
@@ -703,8 +728,8 @@ function OrdersTab({ user }: { user: any }) {
                                 <p className="text-xs font-bold text-gray-900">₹{order.totalAmount?.toLocaleString()}</p>
                             </div>
                             <div className="ml-auto flex items-center">
-                                <span className={`px-2.5 py-1 rounded-sm border text-[9px] font-extrabold uppercase tracking-widest ${getStatusStyles(order.status)}`}>
-                                    {getStatusLabel(order.status)}
+                                <span className={`px-2.5 py-1 rounded-sm border text-[9px] font-extrabold uppercase tracking-widest ${getStatusStyles(order.orderStatus)}`}>
+                                    {getStatusLabel(order.orderStatus)}
                                 </span>
                             </div>
                         </div>

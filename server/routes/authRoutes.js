@@ -27,11 +27,11 @@ router.post('/signup', async (req, res) => {
 
         await user.save();
         
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
         
         res.status(201).json({ 
             token,
-            user: { email: user.email, name: user.name, phone: user.phone, wishlist: user.wishlist, cart: user.cart, addresses: user.addresses }
+            user: { _id: user._id, email: user.email, name: user.name, phone: user.phone, wishlist: user.wishlist, cart: user.cart, addresses: user.addresses }
         });
     } catch (err) {
         if (err.code === 11000) {
@@ -69,11 +69,11 @@ router.post('/login', async (req, res) => {
         await user.save();
 
         // Create Token
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
 
         res.json({
             token,
-            user: { email: user.email, name: user.name, phone: user.phone, wishlist: user.wishlist, cart: user.cart, addresses: user.addresses }
+            user: { _id: user._id, email: user.email, name: user.name, phone: user.phone, wishlist: user.wishlist, cart: user.cart, addresses: user.addresses }
         });
     } catch (err) {
         res.status(500).json({ message: 'An unexpected error occurred. Please try again.' });

@@ -45,7 +45,7 @@ export default function CheckoutPage() {
     const [form, setForm] = useState<Address>(emptyForm);
 
     // API Helper
-    const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://eloriabd.vercel.app';
+    const API_URL = 'https://eloriabd.vercel.app';
 
     // Pricing
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
