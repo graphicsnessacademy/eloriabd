@@ -26,7 +26,18 @@ router.put('/update', auth, async (req, res) => {
         if (phone !== undefined) user.phone = phone; 
         if (addresses !== undefined) user.addresses = addresses; 
         if (wishlist !== undefined) user.wishlist = wishlist;
-        if (cart !== undefined) user.cart = cart;
+        if (cart !== undefined) {
+            // Normalize frontend cart (_id) to DB schema (productId), preserve all fields
+            user.cart = cart.map(item => ({
+                productId: item.productId || item._id || item.id,
+                name: item.name,
+                image: item.image,
+                price: item.price,
+                size: item.size || 'Standard',
+                color: item.color || 'Default',
+                quantity: item.quantity || 1
+            }));
+        }
 
         await user.save();
         

@@ -10,9 +10,14 @@ router.post('/signup', async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // Merge immediately for signup
+        // Merge immediately for signup — preserve ALL product fields
         const newCart = guestCart.map(g => ({
-            productId: g._id,
+            productId: g._id || g.id,
+            name: g.name,
+            image: g.image,
+            price: g.price,
+            size: g.size || 'Standard',
+            color: g.color || 'Default',
             quantity: g.quantity || 1
         }));
 
@@ -56,13 +61,22 @@ router.post('/login', async (req, res) => {
         const uniqueWishlist = [...new Set([...user.wishlist.map(id => id.toString()), ...guestWishlist])];
         user.wishlist = uniqueWishlist;
 
-        // 2. Sync Cart: Merge quantities
+        // 2. Sync Cart: Merge quantities, preserve all product fields
         guestCart.forEach(gItem => {
-            const existing = user.cart.find(uItem => uItem.productId.toString() === gItem._id);
+            const gId = gItem._id || gItem.id;
+            const existing = user.cart.find(uItem => uItem.productId && uItem.productId.toString() === gId);
             if (existing) {
                 existing.quantity += (gItem.quantity || 1);
             } else {
-                user.cart.push({ productId: gItem._id, quantity: gItem.quantity || 1 });
+                user.cart.push({
+                    productId: gId,
+                    name: gItem.name,
+                    image: gItem.image,
+                    price: gItem.price,
+                    size: gItem.size || 'Standard',
+                    color: gItem.color || 'Default',
+                    quantity: gItem.quantity || 1
+                });
             }
         });
 
