@@ -14,33 +14,33 @@ export default function HomePage({ products }: HomePageProps) {
   const bestSellers = products.filter(p => p.category === 'Best Seller' || p.isBestSeller);
 
   return (
-    <main className="pt-[72px]">
+    <main className="pt-[68px]">
       <Hero />
       <TrustBar />
 
       {/* 1. NEW ARRIVAL - Max 18, 6 Columns */}
-      <ProductGrid 
-        title="NEW ARRIVAL" 
-        products={newArrivals} 
-        maxItems={18} 
-        columns={6} 
+      <ProductGrid
+        title="NEW ARRIVAL"
+        products={newArrivals}
+        maxItems={18}
+        columns={6}
       />
 
       {/* 2. THE KURTI - Max 8, 4 Columns, Banner Left */}
-      <ProductGrid 
-        title="THE KURTI" 
-        products={kurtis} 
-        maxItems={8} 
+      <ProductGrid
+        title="THE KURTI"
+        products={kurtis}
+        maxItems={8}
         columns={4}
         featureImage="https://images.unsplash.com/photo-1693988102135-ffbe05f056ec?q=80&w=800"
         featureLabel="Kurti, Tunic & Tops"
       />
 
       {/* 3. T-SHIRT - Max 8, 4 Columns, Banner Right */}
-      <ProductGrid 
-        title="T-SHIRT" 
-        products={tshirts} 
-        maxItems={8} 
+      <ProductGrid
+        title="T-SHIRT"
+        products={tshirts}
+        maxItems={8}
         columns={4}
         featureImage="https://images.unsplash.com/photo-1622445275992-e7efb32d2257?q=80&w=800"
         featureLabel="Women's Designer T-shirt"
@@ -48,11 +48,11 @@ export default function HomePage({ products }: HomePageProps) {
       />
 
       {/* 4. BEST SELLER - Max 12, 6 Columns */}
-      <ProductGrid 
-        title="BEST SELLER" 
-        products={bestSellers} 
-        maxItems={12} 
-        columns={6} 
+      <ProductGrid
+        title="BEST SELLER"
+        products={bestSellers}
+        maxItems={12}
+        columns={6}
       />
     </main>
   );

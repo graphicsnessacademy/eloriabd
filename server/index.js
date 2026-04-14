@@ -37,7 +37,10 @@ app.use(async (req, res, next) => {
 });
 
 const productRoutes = require('./routes/productRoutes');
+const authRoutes = require('./routes/authRoutes');
+
 app.use('/api/products', productRoutes);
+app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => {
   res.send('ELORIA API IS LIVE');

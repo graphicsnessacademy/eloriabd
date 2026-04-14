@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import ShopPage from './pages/ShopPage';
 import SearchPage from './pages/SearchPage';
+import WishlistPage from './pages/WishlistPage';
 
 export default function App() {
   const [products, setProducts] = useState([]);
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/shop" element={<ShopPage products={products} />} />
           <Route path="/shop/:category" element={<ShopPage products={products} />} />
           <Route path="/search" element={<SearchPage products={products} />} />
+          <Route path="/wishlist" element={<WishlistPage products={products} />} />
         </Routes>
 
         <Footer />
