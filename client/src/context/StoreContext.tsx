@@ -14,7 +14,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     try {
       const savedWish = localStorage.getItem('eloria_wishlist');
       const savedCart = localStorage.getItem('eloria_cart');
-      const token = localStorage.getItem('eloria_token');
 
       if (savedWish) setWishlist(JSON.parse(savedWish));
       if (savedCart) setCart(JSON.parse(savedCart));
@@ -64,7 +63,6 @@ const toggleWishlist = (productId: string) => {
       return [...prev, { ...product, quantity: 1 }];
     });
 };
-
 
   const removeFromCart = (productId: string) => {
     setCart((prev) => prev.filter((item) => (item._id || item.id) !== productId));

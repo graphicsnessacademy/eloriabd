@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import ProductCard from '../components/ProductCard';
-import { Heart, ArrowRight, ShoppingBag } from 'lucide-react';
+import { Heart, ArrowRight } from 'lucide-react';
 
 export default function WishlistPage({ products }: { products: any[] }) {
     const { wishlist } = useStore();

@@ -35,22 +35,22 @@ export default function ProductCard({ product }: { product: Product }) {
         return (
             <Link
                 to={`/shop/${product.categoryTarget ?? ''}`}
-              className="group relative aspect-square overflow-hidden justify-center flex flex-col items-center rounded-sm cursor-pointer"
+                className="group relative aspect-square overflow-hidden justify-center flex flex-col items-center rounded-sm cursor-pointer"
             > 
-                <div className=" w-full h-full bg-[black] flex justify-center items-center object-cover group-hover:scale-110 transition-transform duration-700"> 
-                <img
-                    src={product.image}
-                    className="absolute inset-0 opacity-50 blur-[2px] "
-                    alt="View More"
-                />
-                <div className="relative z-10 flex flex-col items-center gap-2 text-center back ">
-                    <div className="w-10 h-10 rounded-full border border-white flex items-center justify-center group-hover:bg-white/10 group-hover:text-black transition-colors">
-                        <ArrowRight className="w-5 h-5 text-white" />
+                <div className="w-full h-full bg-black flex justify-center items-center object-cover group-hover:scale-110 transition-transform duration-700"> 
+                    <img
+                        src={product.image}
+                        className="absolute inset-0 opacity-50 blur-[2px]"
+                        alt="View More"
+                    />
+                    <div className="relative z-10 flex flex-col items-center gap-2 text-center">
+                        <div className="w-10 h-10 rounded-full border border-white flex items-center justify-center group-hover:bg-white group-hover:text-black transition-colors">
+                            <ArrowRight className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-[10px] font-bold tracking-widest uppercase text-white">
+                            View More
+                        </span>
                     </div>
-                    <span className="text-[10px] font-bold tracking-widest uppercase text-white">
-                        View More
-                    </span>
-                </div>
                 </div>
             </Link>
         );
@@ -60,20 +60,23 @@ export default function ProductCard({ product }: { product: Product }) {
     return (
         <div className="group relative bg-white flex flex-col border border-gray-100 transition-all duration-300 hover:shadow-md rounded-sm overflow-hidden">
 
-            {/* Image */}
+            {/* Image Section */}
             <div className="relative aspect-square overflow-hidden bg-gray-50">
-                <img
-                    src={product.image}
-                    alt={product.name}
-                    className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${
-                        isOut ? 'grayscale opacity-60' : ''
-                    }`}
-                    referrerPolicy="no-referrer"
-                />
+                {/* 1. LINK TO PRODUCT DETAIL PAGE (IMAGE) */}
+                <Link to={`/product/${productId}`} className="block w-full h-full">
+                    <img
+                        src={product.image}
+                        alt={product.name}
+                        className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${
+                            isOut ? 'grayscale opacity-60' : ''
+                        }`}
+                        referrerPolicy="no-referrer"
+                    />
+                </Link>
 
                 {/* Stock-out centre overlay */}
                 {isOut && (
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none">
                         <span className="bg-black/75 text-white text-[9px] font-bold tracking-[0.25em] uppercase px-3 py-1.5 rounded-sm">
                             Out of Stock
                         </span>
@@ -104,18 +107,19 @@ export default function ProductCard({ product }: { product: Product }) {
                 )}
 
                 {/*
-                    Action bar
-                    Mobile/Tablet (< lg): always visible, pinned to bottom of image
-                    Desktop (lg+): hidden, slides up on group-hover
+                    Action bar - Positioned on top of the image Link
                 */}
                 <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-center gap-2 p-2 transition-all duration-300 lg:translate-y-full lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100">
                     <button
                         disabled={isOut}
-                        onClick={() => !isOut && addToCart(product)}
+                        onClick={(e) => {
+                            e.preventDefault(); // Prevent navigating to PDP when clicking Add
+                            if (!isOut) addToCart(product);
+                        }}
                         className={`flex items-center gap-1.5 flex-1 justify-center text-[9px] font-bold uppercase tracking-[0.15em] px-3 py-2 rounded-sm whitespace-nowrap transition-all duration-200 active:scale-95 ${
                             isOut
                                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                : 'bg-white/50 backdrop-blur-sm text-black hover:bg-[#3d3599] hover:text-white cursor-pointer'
+                                : 'bg-white/80 backdrop-blur-md text-black hover:bg-[#3d3599] hover:text-white cursor-pointer shadow-sm'
                         }`}
                         aria-label="Add to cart"
                     >
@@ -124,8 +128,11 @@ export default function ProductCard({ product }: { product: Product }) {
                     </button>
 
                     <button
-                        onClick={() => toggleWishlist(productId)}
-                        className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-sm border transition-all duration-200 active:scale-95 ${
+                        onClick={(e) => {
+                            e.preventDefault(); // Prevent navigating to PDP when clicking Heart
+                            toggleWishlist(productId);
+                        }}
+                        className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-sm border transition-all duration-200 active:scale-95 shadow-sm ${
                             isWishlisted
                                 ? 'bg-[#D4537E] border-[#D4537E] text-white'
                                 : 'bg-white border-gray-200 text-gray-500 hover:text-[#D4537E] hover:border-[#D4537E]'
@@ -137,8 +144,9 @@ export default function ProductCard({ product }: { product: Product }) {
                 </div>
             </div>
 
-            {/* Info */}
-            <div className="p-2.5 text-center">
+            {/* Info Section */}
+            {/* 2. LINK TO PRODUCT DETAIL PAGE (TEXT) */}
+            <Link to={`/product/${productId}`} className="p-2.5 text-center block hover:opacity-70 transition-opacity">
                 <h3 className="text-[10px] text-gray-600 truncate mb-1 uppercase font-serif tracking-tight leading-snug">
                     {product.name}
                 </h3>
@@ -156,7 +164,7 @@ export default function ProductCard({ product }: { product: Product }) {
                         )}
                     </div>
                 )}
-            </div>
+            </Link>
         </div>
     );
 }
