@@ -147,11 +147,7 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
                                 <button
                                     onClick={() => {
                                         onClose();
-                                        if (!user) {
-                                            setIsAuthOpen(true);
-                                        } else {
-                                            navigate('/checkout');
-                                        }
+                                        navigate('/checkout');
                                     }}
                                     className="w-full bg-eloria-dark text-white py-5 rounded-full font-bold uppercase tracking-[0.25em] text-[10px] flex items-center justify-center gap-3 hover:bg-eloria-purple transition-all duration-500 shadow-xl group active:scale-95"
                                 >
