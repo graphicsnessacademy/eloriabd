@@ -36,15 +36,17 @@ app.use(async (req, res, next) => {
   }
 });
 
-const productRoutes = require('./routes/productRoutes');
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const orderRoutes = require('./routes/orderRoutes');
+const productRoutes       = require('./routes/productRoutes');
+const authRoutes          = require('./routes/authRoutes');
+const userRoutes          = require('./routes/userRoutes');
+const orderRoutes         = require('./routes/orderRoutes');
+const hybridCheckoutRoute = require('./routes/hybridCheckoutRoute');
 
-app.use('/api/products', productRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/orders', orderRoutes);
+app.use('/api/products',        productRoutes);
+app.use('/api/auth',            authRoutes);
+app.use('/api/user',            userRoutes);
+app.use('/api/orders',          orderRoutes);
+app.use('/api/hybrid-checkout', hybridCheckoutRoute);
 
 app.get('/', (req, res) => {
   res.send('ELORIA API IS LIVE');

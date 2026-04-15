@@ -148,6 +148,36 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (!user) localStorage.removeItem('eloria_cart');
   };
 
+  /**
+   * Order Now — adds product to cart (merging quantities for same SKU)
+   * then navigates to /checkout without opening the cart drawer.
+   * Caller must pass the react-router navigate function.
+   */
+  const orderNow = (product: any, navigateFn: (path: string) => void) => {
+    const productId    = product._id || product.id;
+    const selectedSize  = product.size  || 'Standard';
+    const selectedColor = product.color || 'Default';
+
+    setCart((prev) => {
+      const existingIdx = prev.findIndex((item: any) =>
+        (item._id || item.id) === productId &&
+        item.size  === selectedSize &&
+        item.color === selectedColor
+      );
+      if (existingIdx !== -1) {
+        const updated = [...prev];
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          quantity: (updated[existingIdx].quantity || 1) + (product.quantity || 1)
+        };
+        return updated;
+      }
+      return [...prev, { ...product, quantity: product.quantity || 1, size: selectedSize, color: selectedColor }];
+    });
+
+    navigateFn('/checkout');
+  };
+
   const loginSync = (data: any) => {
     setUser(data.user);
     localStorage.setItem('eloria_token', data.token);
@@ -195,7 +225,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       clearCart,
       loginSync,
       logout,
-      updateUserProfile
+      updateUserProfile,
+      orderNow
     }}>
       {children}
     </StoreContext.Provider>

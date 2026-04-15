@@ -1,8 +1,8 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useMemo, useEffect } from 'react';
 import {
     ShoppingBag, Heart, ShieldCheck, Truck,
-    RotateCcw, ChevronRight, Maximize2, ChevronLeft
+    RotateCcw, ChevronRight, Maximize2, ChevronLeft, Zap
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import ProductCard from '../components/ProductCard';
@@ -21,7 +21,8 @@ interface Product {
 
 export default function ProductDetailPage({ products }: { products: Product[] }) {
     const { id } = useParams();
-    const { addToCart, wishlist, toggleWishlist } = useStore();
+    const { addToCart, wishlist, toggleWishlist, orderNow } = useStore();
+    const navigate = useNavigate();
 
     // States for user selections
     const [selectedSize, setSelectedSize] = useState('M');
@@ -80,6 +81,15 @@ export default function ProductDetailPage({ products }: { products: Product[] })
             size: selectedSize,
             color: selectedColor
         });
+    };
+
+    // Handle Order Now — adds product (with current variant) to cart then goes to checkout
+    const handleOrderNow = () => {
+        orderNow({
+            ...product,
+            size: selectedSize,
+            color: selectedColor
+        }, navigate);
     };
 
     return (
@@ -196,21 +206,33 @@ export default function ProductDetailPage({ products }: { products: Product[] })
                         </div>
 
                         {/* --- ACTION BUTTONS --- */}
-                        <div className="flex space-x-4">
+                        <div className="space-y-3">
+                            {/* PRIMARY: Order Now (fast-track to checkout) */}
                             <button
-                                onClick={handleAddToBag}
-                                className="flex-1 bg-eloria-dark text-white py-4 rounded-full flex items-center justify-center space-x-3 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl active:scale-95"
+                                onClick={handleOrderNow}
+                                className="w-full bg-[#534AB7] text-white py-4 rounded-full flex items-center justify-center space-x-3 text-[11px] font-extrabold uppercase tracking-[0.2em] hover:bg-[#3d3599] transition-all shadow-xl shadow-[#534AB7]/25 active:scale-[0.98]"
                             >
-                                <ShoppingBag size={16} />
-                                <span>Add to shopping bag</span>
+                                <Zap size={15} className="fill-current" />
+                                <span>Order Now</span>
                             </button>
 
-                            <button
-                                onClick={() => toggleWishlist(product._id || product.id)}
-                                className={`w-14 h-14 border rounded-full flex items-center justify-center transition-all duration-300 ${isWishlisted ? 'bg-eloria-rose border-eloria-rose text-white shadow-lg' : 'border-gray-200 text-gray-400 hover:text-eloria-rose hover:border-eloria-rose hover:bg-eloria-rose/5'}`}
-                            >
-                                <Heart size={22} className={isWishlisted ? 'fill-current' : ''} />
-                            </button>
+                            {/* SECONDARY: Add to Bag + Wishlist row */}
+                            <div className="flex space-x-3">
+                                <button
+                                    onClick={handleAddToBag}
+                                    className="flex-1 bg-[#2C2C2A] text-white py-4 rounded-full flex items-center justify-center space-x-3 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-black transition-all shadow-lg active:scale-[0.98]"
+                                >
+                                    <ShoppingBag size={15} />
+                                    <span>Add to Bag</span>
+                                </button>
+
+                                <button
+                                    onClick={() => toggleWishlist(product._id || product.id)}
+                                    className={`w-14 h-14 border rounded-full flex items-center justify-center transition-all duration-300 ${isWishlisted ? 'bg-eloria-rose border-eloria-rose text-white shadow-lg' : 'border-gray-200 text-gray-400 hover:text-eloria-rose hover:border-eloria-rose hover:bg-eloria-rose/5'}`}
+                                >
+                                    <Heart size={20} className={isWishlisted ? 'fill-current' : ''} />
+                                </button>
+                            </div>
                         </div>
 
                         {/* --- TRUST BAR --- */}
