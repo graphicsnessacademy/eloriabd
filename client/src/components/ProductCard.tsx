@@ -111,7 +111,10 @@ export default function ProductCard({ product }: { product: Product }) {
                     Action bar — slides up on hover (desktop), always visible on mobile
                 */}
                 <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col gap-1 p-2 transition-all duration-300 lg:translate-y-full lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100">
-                    {/* Row 1: Order Now (fast-track) */}
+                   
+                    {/* Row 2: order now + Wishlist */}
+                    <div className="flex items-center gap-1">
+                       
                     <button
                         disabled={isOut}
                         onClick={(e) => {
@@ -129,24 +132,6 @@ export default function ProductCard({ product }: { product: Product }) {
                         <span>Order Now</span>
                     </button>
 
-                    {/* Row 2: Add to Cart + Wishlist */}
-                    <div className="flex items-center gap-1">
-                        <button
-                            disabled={isOut}
-                            onClick={(e) => {
-                                e.preventDefault();
-                                if (!isOut) addToCart(product);
-                            }}
-                            className={`flex items-center gap-1.5 flex-1 justify-center text-[9px] font-bold uppercase tracking-[0.15em] px-3 py-2 rounded-sm whitespace-nowrap transition-all duration-200 active:scale-95 ${
-                                isOut
-                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                    : 'bg-white/85 backdrop-blur-md text-black hover:bg-white cursor-pointer shadow-sm'
-                            }`}
-                            aria-label="Add to cart"
-                        >
-                            <ShoppingCart className="w-3 h-3 shrink-0" />
-                            <span>Add</span>
-                        </button>
 
                         <button
                             onClick={(e) => {
