@@ -9,6 +9,7 @@ import WishlistPage from './pages/WishlistPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import AccountPage from './pages/AccountPage';
 import CheckoutPage from './pages/CheckoutPage';
+import CountdownBanner from './components/CountdownBanner';
 
 
 export default function App() {
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/product/:id" element={<ProductDetailPage products={products} />} />
           <Route path="/account" element={<AccountPage products={products} />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          
 
         </Routes>
 

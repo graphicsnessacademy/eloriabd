@@ -1,6 +1,7 @@
 import Hero from '../components/Hero';
 import TrustBar from '../components/TrustBar';
 import ProductGrid from '../components/ProductGrid';
+import CountdownBanner from '../components/CountdownBanner';
 
 interface HomePageProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,6 +56,10 @@ export default function HomePage({ products }: HomePageProps) {
         maxItems={12}
         columns={6}
       />
+    <CountdownBanner 
+  targetDate="2026-04-20T23:59:59" 
+  isVisible={true} 
+/>
     </main>
   );
 }

@@ -1,11 +1,13 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useMemo, useEffect } from 'react';
+
 import {
     ShoppingBag, Heart, ShieldCheck, Truck,
     RotateCcw, ChevronRight, Maximize2, ChevronLeft, Zap
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import ProductCard from '../components/ProductCard';
+import CountdownBanner from '../components/CountdownBanner';
 
 interface Product {
     _id?: string;
@@ -207,28 +209,32 @@ export default function ProductDetailPage({ products }: { products: Product[] })
 
                         {/* --- ACTION BUTTONS --- */}
                         <div className="space-y-3">
-                            {/* PRIMARY: Order Now (fast-track to checkout) */}
-                            <button
-                                onClick={handleOrderNow}
-                                className="w-full bg-[#534AB7] text-white py-4 rounded-full flex items-center justify-center space-x-3 text-[11px] font-extrabold uppercase tracking-[0.2em] hover:bg-[#3d3599] transition-all shadow-xl shadow-[#534AB7]/25 active:scale-[0.98]"
-                            >
-                                <Zap size={15} className="fill-current" />
-                                <span>Order Now</span>
-                            </button>
+                            <div className="flex items-center gap-3 w-full">
+                                {/* 1. Order Now (Fast-track) */}
+                                <button
+                                    onClick={handleOrderNow}
+                                    className="flex-[2] bg-[#534AB7] text-white py-4 rounded-full flex items-center justify-center space-x-2 text-[10px] font-extrabold uppercase tracking-widest hover:bg-[#3d3599] transition-all shadow-lg active:scale-95 whitespace-nowrap"
+                                >
+                                    <Zap size={14} className="fill-current" />
+                                    <span>Order Now</span>
+                                </button>
 
-                            {/* SECONDARY: Add to Bag + Wishlist row */}
-                            <div className="flex space-x-3">
+                                {/* 2. Add to Bag */}
                                 <button
                                     onClick={handleAddToBag}
-                                    className="flex-1 bg-[#2C2C2A] text-white py-4 rounded-full flex items-center justify-center space-x-3 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-black transition-all shadow-lg active:scale-[0.98]"
+                                    className="flex-[2] bg-[#2C2C2A] text-white py-4 rounded-full flex items-center justify-center space-x-2 text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-95 whitespace-nowrap"
                                 >
-                                    <ShoppingBag size={15} />
+                                    <ShoppingBag size={14} />
                                     <span>Add to Bag</span>
                                 </button>
 
+                                {/* 3. Wishlist (Small Square/Circle) */}
                                 <button
                                     onClick={() => toggleWishlist(product._id || product.id)}
-                                    className={`w-14 h-14 border rounded-full flex items-center justify-center transition-all duration-300 ${isWishlisted ? 'bg-eloria-rose border-eloria-rose text-white shadow-lg' : 'border-gray-200 text-gray-400 hover:text-eloria-rose hover:border-eloria-rose hover:bg-eloria-rose/5'}`}
+                                    className={`w-14 h-14 shrink-0 border rounded-full flex items-center justify-center transition-all duration-300 ${isWishlisted
+                                        ? 'bg-eloria-rose border-eloria-rose text-white shadow-lg'
+                                        : 'border-gray-200 text-gray-400 hover:text-eloria-rose hover:border-eloria-rose hover:bg-eloria-rose/5'
+                                        }`}
                                 >
                                     <Heart size={20} className={isWishlisted ? 'fill-current' : ''} />
                                 </button>
@@ -308,8 +314,12 @@ export default function ProductDetailPage({ products }: { products: Product[] })
                     </div>
                 )}
 
-
-
+            </div>
+            <div className="">
+                <CountdownBanner
+                    targetDate="2026-04-20T23:59:59"
+                    isVisible={true}
+                />
             </div>
         </div>
     );

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
+import CountdownBanner from '../components/CountdownBanner';
 
 interface ShopPageProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,8 +47,8 @@ export default function ShopPage({ products = [] }: ShopPageProps) {
       const priceMatch = p.price <= priceRange;
 
       // Sidebar Type Checkboxes
-      const typeMatch = selectedTypes.length > 0 
-        ? selectedTypes.includes(p.category) 
+      const typeMatch = selectedTypes.length > 0
+        ? selectedTypes.includes(p.category)
         : true;
 
       return categoryMatch && priceMatch && typeMatch;
@@ -76,7 +77,7 @@ export default function ShopPage({ products = [] }: ShopPageProps) {
     setPriceRange(10000);
     setSelectedTypes([]);
     setSortOption('Latest');
-    navigate('/shop'); 
+    navigate('/shop');
   };
 
   return (
@@ -102,12 +103,12 @@ export default function ShopPage({ products = [] }: ShopPageProps) {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-10 flex flex-col lg:flex-row gap-12">
-        
+
         {/* --- SIDEBAR FILTERS --- */}
         <aside className="w-full lg:w-64 flex-shrink-0">
           <div className="flex items-center justify-between mb-8 border-b border-black pb-2">
             <h2 className="text-xl font-serif font-medium">Filters</h2>
-            <button 
+            <button
               onClick={handleReset}
               className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black underline underline-offset-4 transition-colors"
             >
@@ -119,13 +120,13 @@ export default function ShopPage({ products = [] }: ShopPageProps) {
             {/* PRICE FILTER */}
             <div className="border-b border-gray-100 pb-6">
               <button onClick={() => toggleFilter('price')} className="flex items-center justify-between w-full text-xs font-bold uppercase tracking-[0.2em] text-gray-800 mb-4">
-                Price {openFilters.price ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
+                Price {openFilters.price ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
               {openFilters.price && (
                 <div className="px-2">
-                  <input 
+                  <input
                     type="range" min="0" max="10000" step="100"
-                    className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black" 
+                    className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
                     value={priceRange}
                     onChange={(e) => setPriceRange(parseInt(e.target.value))}
                   />
@@ -139,19 +140,19 @@ export default function ShopPage({ products = [] }: ShopPageProps) {
             {/* PRODUCT TYPE FILTER */}
             <div className="border-b border-gray-100 pb-6">
               <button onClick={() => toggleFilter('type')} className="flex items-center justify-between w-full text-xs font-bold uppercase tracking-[0.2em] text-gray-800 mb-4">
-                Product Type {openFilters.type ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
+                Product Type {openFilters.type ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
               {openFilters.type && (
                 <div className="space-y-3">
                   {['Saree', 'Kurti', 'T-Shirt', 'Gown'].map((type) => (
                     <label key={type} className="flex items-center justify-between group cursor-pointer">
                       <div className="flex items-center gap-3">
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
                           checked={selectedTypes.includes(type)}
                           onChange={() => {
-                            setSelectedTypes(prev => 
+                            setSelectedTypes(prev =>
                               prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
                             )
                           }}
@@ -167,7 +168,7 @@ export default function ShopPage({ products = [] }: ShopPageProps) {
             {/* SIZE FILTER */}
             <div className="border-b border-gray-100 pb-6">
               <button onClick={() => toggleFilter('size')} className="flex items-center justify-between w-full text-xs font-bold uppercase tracking-[0.2em] text-gray-800 mb-4">
-                Size {openFilters.size ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
+                Size {openFilters.size ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
               {openFilters.size && (
                 <div className="space-y-3">
@@ -191,10 +192,10 @@ export default function ShopPage({ products = [] }: ShopPageProps) {
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
               Showing {filteredProducts.length} results
             </p>
-            
+
             <div className="flex items-center gap-4">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sort By</span>
-              <select 
+              <select
                 value={sortOption}
                 onChange={(e) => setSortOption(e.target.value)}
                 className="text-xs font-bold border-none bg-transparent focus:ring-0 cursor-pointer uppercase tracking-tighter outline-none"
@@ -218,8 +219,20 @@ export default function ShopPage({ products = [] }: ShopPageProps) {
               <button onClick={handleReset} className="mt-4 text-eloria-purple text-xs font-bold uppercase tracking-widest underline">Clear search filters</button>
             </div>
           )}
+          
+          
+
+          
+
         </div>
+        
       </div>
+      <div className="">
+          <CountdownBanner 
+          targetDate="2026-04-20T23:59:59" 
+          isVisible={true} 
+        />
+       </div>
     </div>
   );
 }
