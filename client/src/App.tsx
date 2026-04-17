@@ -50,8 +50,6 @@ export default function App() {
           <Route path="/product/:id" element={<ProductDetailPage products={products} />} />
           <Route path="/account" element={<AccountPage products={products} />} />
           <Route path="/checkout" element={<CheckoutPage />} />
-          
-
         </Routes>
 
         <Footer />

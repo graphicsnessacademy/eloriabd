@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Ensure the image exists at this path
-import flashBanner from '../assets/Flashsalebg.jpg';
+import flashBanner from '../assets/flashsalebg.jpg';
 
 interface CountdownProps {
     offerName?: string;
