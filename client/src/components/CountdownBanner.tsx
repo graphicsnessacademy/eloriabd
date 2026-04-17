@@ -35,6 +35,16 @@ const TimeUnit = ({ value, label }: { value: number, label: string }) => (
     </div>
 );
 
+const LightningBolt = () => (
+    <motion.span
+        animate={{ scale: [1, 1.5, 1], rotate: [0, 10, -10, 0] }}
+        transition={{ repeat: Infinity, duration: 2 }}
+        className="text-5xl md:text-7xl lg:text-8xl drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]"
+    >
+        ⚡
+    </motion.span>
+);
+
 export default function CountdownBanner({
     offerName = "FLASH DEAL",
     description = "Offer on all products! Hurry before it ends.",
@@ -61,16 +71,6 @@ export default function CountdownBanner({
     }, [targetDate]);
 
     if (!isVisible) return null;
-
-    const LightningBolt = () => (
-        <motion.span
-            animate={{ scale: [1, 1.5, 1], rotate: [0, 10, -10, 0] }}
-            transition={{ repeat: Infinity, duration: 2 }}
-            className="text-5xl md:text-7xl lg:text-8xl drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]"
-        >
-            ⚡
-        </motion.span>
-    );
 
     return (
         <section className="relative py-20 px-6 overflow-hidden text-center border-y-4 border-eloria-rose">

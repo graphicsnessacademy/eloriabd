@@ -9,8 +9,6 @@ import WishlistPage from './pages/WishlistPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import AccountPage from './pages/AccountPage';
 import CheckoutPage from './pages/CheckoutPage';
-import CountdownBanner from './components/CountdownBanner';
-
 
 export default function App() {
   const [products, setProducts] = useState([]);

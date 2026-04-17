@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-    const { cart, removeFromCart, updateCartQuantity, user, setIsAuthOpen } = useStore();
+    const { cart, removeFromCart, updateCartQuantity } = useStore();
     const navigate = useNavigate();
 
     // Calculate subtotal based on price * quantity

@@ -1,4 +1,4 @@
-import { ShoppingCart, Heart, ArrowRight, Zap } from 'lucide-react';
+import { ShoppingCart, ArrowRight, Zap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 
@@ -18,14 +18,13 @@ interface Product {
 }
 
 export default function ProductCard({ product }: { product: Product }) {
-    const { toggleWishlist, wishlist, addToCart, orderNow } = useStore();
+    const { addToCart, orderNow } = useStore();
     const navigate = useNavigate();
 
     const productId = product._id || product.id;
-    const isWishlisted = wishlist.includes(productId);
 
-    const isNew  = product.isNewProduct || product.category === 'New Arrival';
-    const isOut  = product.inStock === false || product.stock === 0;
+    const isNew = product.isNewProduct || product.category === 'New Arrival';
+    const isOut = product.inStock === false || product.stock === 0;
     const isSale = !isOut && !!(product.originalPrice && product.originalPrice > product.price);
     const discountPct = isSale
         ? Math.round(((product.originalPrice! - product.price) / product.originalPrice!) * 100)
@@ -37,8 +36,8 @@ export default function ProductCard({ product }: { product: Product }) {
             <Link
                 to={`/shop/${product.categoryTarget ?? ''}`}
                 className="group relative aspect-square overflow-hidden justify-center flex flex-col items-center rounded-sm cursor-pointer"
-            > 
-                <div className="w-full h-full bg-black flex justify-center items-center object-cover group-hover:scale-110 transition-transform duration-700"> 
+            >
+                <div className="w-full h-full bg-black flex justify-center items-center object-cover group-hover:scale-110 transition-transform duration-700">
                     <img
                         src={product.image}
                         className="absolute inset-0 opacity-50 blur-[2px]"
@@ -68,9 +67,8 @@ export default function ProductCard({ product }: { product: Product }) {
                     <img
                         src={product.image}
                         alt={product.name}
-                        className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${
-                            isOut ? 'grayscale opacity-60' : ''
-                        }`}
+                        className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${isOut ? 'grayscale opacity-60' : ''
+                            }`}
                         referrerPolicy="no-referrer"
                     />
                 </Link>
@@ -111,42 +109,41 @@ export default function ProductCard({ product }: { product: Product }) {
                     Action bar — slides up on hover (desktop), always visible on mobile
                 */}
                 <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col gap-1 p-2 transition-all duration-300 lg:translate-y-full lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100">
-                   
+
                     {/* Row 2: order now + Wishlist */}
                     <div className="flex items-center gap-1">
-                       
-                    <button
-                        disabled={isOut}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            if (!isOut) orderNow(product, navigate);
-                        }}
-                        className={`flex items-center gap-1.5 w-full justify-center text-[9px] font-extrabold uppercase tracking-[0.15em] px-3 py-2 rounded-sm whitespace-nowrap transition-all duration-200 active:scale-95 ${
-                            isOut
-                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                : 'bg-[#534AB7] text-white hover:bg-[#3d3599] cursor-pointer shadow-md'
-                        }`}
-                        aria-label="Order now"
-                    >
-                        <Zap className="w-3 h-3 shrink-0" />
-                        <span>Order Now</span>
-                    </button>
-
 
                         <button
+                            disabled={isOut}
                             onClick={(e) => {
                                 e.preventDefault();
-                                toggleWishlist(productId);
+                                if (!isOut) orderNow(product, navigate);
                             }}
-                            className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-sm border transition-all duration-200 active:scale-95 shadow-sm ${
-                                isWishlisted
-                                    ? 'bg-[#D4537E] border-[#D4537E] text-white'
-                                    : 'bg-white border-gray-200 text-gray-500 hover:text-[#D4537E] hover:border-[#D4537E]'
-                            }`}
-                            aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                            className={`flex items-center gap-1.5 w-full justify-center text-[9px] font-extrabold uppercase tracking-[0.15em] px-3 py-2 rounded-sm whitespace-nowrap transition-all duration-200 active:scale-95 ${isOut
+                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'bg-[#534AB7] text-white hover:bg-[#3d3599]  cursor-pointer shadow-md'
+                                }`}
+                            aria-label="Order now"
                         >
-                            <Heart className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-current' : ''}`} />
+                            <Zap className="w-3 h-3 shrink-0 " />
+                            <span>Order Now</span>
                         </button>
+
+                        <button
+                            disabled={isOut}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                if (!isOut) addToCart(product);
+                            }}
+                            className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-sm  transition-all duration-200 active:scale-95 shadow-sm ${isOut
+                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'bg-white text-gray-500 hover:text-white hover:bg-[#46bd81]'
+                                }`}
+                            aria-label="Add to cart"
+                        >
+                            <ShoppingCart className="fill-white w-4 h-4 shrink-0 " />
+                        </button>
+
                     </div>
                 </div>
             </div>
