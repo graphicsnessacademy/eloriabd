@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Filter, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,16 +12,16 @@ interface ShopPageProps {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Converts any string to a URL-safe slug: "New Arrival" → "new-arrival" */
-const toSlug = (str: string) => str.toLowerCase().trim().replace(/\s+/g, '-');
+/** "New Arrival" → "new-arrival", "T-Shirt" → "t-shirt" */
+const toSlug = (str: string) =>
+  (str ?? '').toLowerCase().trim().replace(/\s+/g, '-');
 
-/** Case-insensitive substring check */
-const ciIncludes = (haystack: string = '', needle: string) =>
-  haystack.toLowerCase().includes(needle.toLowerCase());
-
-/** Case-insensitive equality check */
+/** Case-insensitive equality */
 const ciEquals = (a: string = '', b: string = '') =>
   a.toLowerCase().trim() === b.toLowerCase().trim();
+
+/** Special URL slugs that map to boolean flags, not a category string */
+const SPECIAL_SLUGS = ['new-arrival', 'best-seller'];
 
 // ─── Filter Sidebar Content (extracted to avoid re-creation inside render) ──
 
@@ -34,6 +34,7 @@ interface FilterContentProps {
   setSelectedTypes: React.Dispatch<React.SetStateAction<string[]>>;
   selectedSizes: string[];
   setSelectedSizes: React.Dispatch<React.SetStateAction<string[]>>;
+  availableTypes: string[];
 }
 
 function FilterContent({
@@ -41,9 +42,14 @@ function FilterContent({
   priceRange, setPriceRange,
   selectedTypes, setSelectedTypes,
   selectedSizes, setSelectedSizes,
+  availableTypes,
 }: FilterContentProps) {
-  const TYPES = ['Saree', 'Kurti', 'T-Shirt', 'Gown'];
   const SIZES = ['S', 'M', 'L', 'XL', '2XL'];
+
+  // Use TYPES passed from parent (dynamic from DB), fallback to static list
+  const TYPES = availableTypes.length > 0
+    ? availableTypes
+    : ['Saree', 'Kurti', 'T-Shirt', 'Gown', 'Western', 'Party Wear'];
 
   const toggleType = (type: string) =>
     setSelectedTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
@@ -161,25 +167,51 @@ export default function ShopPage({ products = [] }: ShopPageProps) {
     return category.replace(/-/g, ' ').toUpperCase();
   };
 
+  // --- Reset sidebar type/size when the URL category changes ---
+  // Prevents sidebar filters from conflicting with URL navigation
+  useEffect(() => {
+    setSelectedTypes([]);
+    setSelectedSizes([]);
+  }, [category]);
+
+  // --- Unique categories derived from the real product list ---
+  const availableTypes = useMemo(() => {
+    const seen = new Set<string>();
+    const types: string[] = [];
+    for (const p of products) {
+      const cat = (p.category ?? '').trim();
+      // Exclude special flag-based categories from the sidebar list
+      if (cat && !SPECIAL_SLUGS.includes(toSlug(cat)) && !seen.has(cat.toLowerCase())) {
+        seen.add(cat.toLowerCase());
+        types.push(cat); // keep original casing for display
+      }
+    }
+    return types.sort(); // alphabetical
+  }, [products]);
+
   // --- Logic: Advanced Filtering & Sorting ---
   const filteredProducts = useMemo(() => {
     let result = products.filter((p) => {
 
       // 1. ── URL Category Match ────────────────────────────────────────────
       //    The URL param uses slugs (e.g. "new-arrival", "saree", "t-shirt").
-      //    We compare against the product's `category` field case-insensitively.
+      //    We compare against the product's `category` field using slugs.
       let categoryMatch = true;
       if (category && category !== 'all') {
         const slug = category.toLowerCase();
 
         if (slug === 'new-arrival') {
-          categoryMatch = p.isNewProduct === true || ciIncludes(p.category, 'new arrival');
+          // Match products flagged as new OR whose category text contains "new arrival"
+          categoryMatch =
+            p.isNewProduct === true ||
+            (p.category ?? '').toLowerCase().includes('new arrival');
         } else if (slug === 'best-seller') {
-          categoryMatch = p.isBestSeller === true || ciIncludes(p.category, 'best seller');
+          categoryMatch =
+            p.isBestSeller === true ||
+            (p.category ?? '').toLowerCase().includes('best seller');
         } else {
-          // Convert both sides to slug for comparison so that
-          // "T-Shirt" (DB) ↔ "t-shirt" (URL) and
-          // "New Arrival" (DB) ↔ "new-arrival" (URL) all match correctly.
+          // Slugify both the URL param and the DB category, then compare.
+          // "T-Shirt" → "t-shirt", "Party Wear" → "party-wear"
           categoryMatch = toSlug(p.category ?? '') === slug;
         }
       }
@@ -187,22 +219,24 @@ export default function ShopPage({ products = [] }: ShopPageProps) {
       // 2. ── Price Filter ──────────────────────────────────────────────────
       const priceMatch = p.price <= priceRange;
 
-      // 3. ── Type Sidebar Checkboxes (case-insensitive) ────────────────────
-      //    DB may store "saree", "Saree", or "SAREE" – normalise both sides.
+      // 3. ── Sidebar Type Checkboxes (case-insensitive) ────────────────────
+      //    Only active on /shop (no URL category).  When a URL category is
+      //    already set, the sidebar type filter is skipped to avoid double-
+      //    filtering (which caused "0 results" on category pages).
       const typeMatch =
-        selectedTypes.length === 0
-          ? true
-          : selectedTypes.some(t => ciEquals(p.category, t));
+        category && category !== 'all'
+          ? true  // URL category already filters — sidebar type is bypassed
+          : selectedTypes.length === 0
+            ? true
+            : selectedTypes.some(t => ciEquals(p.category, t));
 
-      // 4. ── Size Filter (case-insensitive substring in sizes array) ────────
-      //    Products may have a `sizes` array field; if the product has no size
-      //    info we treat it as matching all sizes (don't hide it).
+      // 4. ── Size Filter ────────────────────────────────────────────────────
       const sizeMatch =
         selectedSizes.length === 0
           ? true
           : !p.sizes || p.sizes.length === 0
-            ? true // product has no size data → don't exclude it
-            : selectedSizes.some(s => p.sizes.some((ps: string) => ciEquals(ps, s)));
+            ? true
+            : selectedSizes.some(s => (p.sizes as string[]).some(ps => ciEquals(ps, s)));
 
       return categoryMatch && priceMatch && typeMatch && sizeMatch;
     });
@@ -213,7 +247,6 @@ export default function ShopPage({ products = [] }: ShopPageProps) {
     } else if (sortOption === 'Price: High to Low') {
       result.sort((a, b) => b.price - a.price);
     } else {
-      // Latest: sort descending by MongoDB ObjectId / id string
       result.sort((a, b) => (b._id || b.id || '').localeCompare(a._id || a.id || ''));
     }
 
@@ -239,6 +272,7 @@ export default function ShopPage({ products = [] }: ShopPageProps) {
     setSelectedTypes,
     selectedSizes,
     setSelectedSizes,
+    availableTypes,
   };
 
   return (
