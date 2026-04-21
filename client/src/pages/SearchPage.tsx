@@ -40,7 +40,7 @@ export default function SearchPage({ products }: { products: any[] }) {
     const raw = fuse.search(query);
 
     // Sort is already by score (best first). Unwrap the item.
-    return raw.map((r) => r.item);
+    return raw.map((r: any) => r.item);
   }, [fuse, products, query]);
 
   return (
@@ -60,7 +60,7 @@ export default function SearchPage({ products }: { products: any[] }) {
 
         {results.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {results.map((product) => (
+            {results.map((product: any) => (
               <ProductCard key={product._id || product.id} product={product} />
             ))}
           </div>
