@@ -10,13 +10,14 @@
  * Swap the sendOtp() stub below with your Twilio/SSL Wireless call for production.
  */
 
-const express  = require('express');
-const router   = express.Router();
-const bcrypt   = require('bcryptjs');
-const jwt      = require('jsonwebtoken');
-const User     = require('../models/User');
-const Order    = require('../models/Order');
+const express = require('express');
+const router = express.Router();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const Order = require('../models/Order').default || require('../models/Order');
 const OtpStore = require('../models/OtpStore');
+const Coupon = require('../models/Coupon').default || require('../models/Coupon');
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -32,12 +33,12 @@ const safeUser = (u) => ({
 /** Normalise a guest-cart item to the DB cart sub-document shape */
 const normaliseCartItem = (g) => ({
     productId: g._id || g.id || g.productId,
-    name:      g.name,
-    image:     g.image,
-    price:     g.price,
-    size:      g.size  || 'Standard',
-    color:     g.color || 'Default',
-    quantity:  g.quantity || 1
+    name: g.name,
+    image: g.image,
+    price: g.price,
+    size: g.size || 'Standard',
+    color: g.color || 'Default',
+    quantity: g.quantity || 1
 });
 
 /** Merge guest cart into an existing user cart (add quantities for same SKU) */
@@ -47,8 +48,8 @@ const mergeCart = (dbCart, guestCart) => {
         const gId = (g._id || g.id || g.productId)?.toString();
         const existing = merged.find(
             u => u.productId?.toString() === gId &&
-                 u.size  === (g.size  || 'Standard') &&
-                 u.color === (g.color || 'Default')
+                u.size === (g.size || 'Standard') &&
+                u.color === (g.color || 'Default')
         );
         if (existing) {
             existing.quantity += (g.quantity || 1);
@@ -60,15 +61,15 @@ const mergeCart = (dbCart, guestCart) => {
 };
 
 /** Build a Mongoose Order document and save it, then wipe user cart */
-const createOrder = async (userId, { cart, shippingAddress, totalAmount }) => {
+const createOrder = async (userId, { cart, shippingAddress, totalAmount, couponCode }) => {
     const items = cart.map(c => ({
         productId: c._id || c.id || c.productId,
-        name:      c.name,
-        image:     c.image,
-        size:      c.size  || 'Standard',
-        color:     c.color || 'Default',
-        price:     c.price,
-        quantity:  c.quantity || 1
+        name: c.name,
+        image: c.image,
+        size: c.size || 'Standard',
+        color: c.color || 'Default',
+        price: c.price,
+        quantity: c.quantity || 1
     }));
 
     const order = await new Order({
@@ -76,11 +77,21 @@ const createOrder = async (userId, { cart, shippingAddress, totalAmount }) => {
         items,
         shippingAddress,
         paymentMethod: 'Cash on Delivery',
-        totalAmount
+        totalAmount,
+        couponCode: couponCode || undefined,
     }).save();
 
     // Clear the user's cart buffer
     await User.findByIdAndUpdate(userId, { cart: [] });
+
+    // Track coupon usage
+    if (couponCode) {
+        await Coupon.findOneAndUpdate(
+            { code: couponCode.toUpperCase().trim() },
+            { $inc: { usageCount: 1 }, $push: { usedBy: userId } }
+        );
+    }
+
     return order;
 };
 
@@ -114,7 +125,8 @@ router.post('/place-order', async (req, res) => {
     const {
         fullName, phone, email, password,
         addressLabel = 'Home', district, area, addressDetail,
-        cart = [], totalAmount, shippingAddress: providedAddress
+        cart = [], totalAmount, shippingAddress: providedAddress,
+        couponCode
     } = req.body;
 
     if (!email && !phone)
@@ -125,13 +137,13 @@ router.post('/place-order', async (req, res) => {
     try {
         // Build shipping address from form fields (used if no pre-built address provided)
         const shippingAddress = providedAddress || {
-            label:         addressLabel,
+            label: addressLabel,
             recipientName: fullName,
-            contact:       phone,
-            country:       'Bangladesh',
+            contact: phone,
+            country: 'Bangladesh',
             district,
             area,
-            address:       addressDetail
+            address: addressDetail
         };
 
         // ── Check if user exists ──────────────────────────────────────────────
@@ -148,17 +160,17 @@ router.post('/place-order', async (req, res) => {
             const user = await new User({
                 email,
                 password: hashed,
-                name:      fullName,
+                name: fullName,
                 phone,
                 addresses: [{ ...shippingAddress, isDefault: true }],
-                cart:      cart.map(normaliseCartItem)
+                cart: cart.map(normaliseCartItem)
             }).save();
 
-            const order = await createOrder(user._id, { cart, shippingAddress, totalAmount });
+            const order = await createOrder(user._id, { cart, shippingAddress, totalAmount, couponCode });
             return res.status(201).json({
                 status: 'created',
-                token:  signToken(user._id),
-                user:   safeUser(user),
+                token: signToken(user._id),
+                user: safeUser(user),
                 order
             });
         }
@@ -172,11 +184,11 @@ router.post('/place-order', async (req, res) => {
             if (!addrExists) existing.addresses.push(shippingAddress);
             await existing.save();
 
-            const order = await createOrder(existing._id, { cart: existing.cart.length ? existing.cart : cart, shippingAddress, totalAmount });
+            const order = await createOrder(existing._id, { cart: existing.cart.length ? existing.cart : cart, shippingAddress, totalAmount, couponCode });
             return res.json({
                 status: 'logged_in',
-                token:  signToken(existing._id),
-                user:   safeUser(existing),
+                token: signToken(existing._id),
+                user: safeUser(existing),
                 order
             });
         }
@@ -188,9 +200,9 @@ router.post('/place-order', async (req, res) => {
         // Remove any previous OTP for this user before saving new one
         await OtpStore.deleteMany({ userId: existing._id });
         const otpDoc = await new OtpStore({
-            userId:       existing._id,
-            otp:          otpHash,
-            pendingOrder: { cart, shippingAddress, totalAmount }
+            userId: existing._id,
+            otp: otpHash,
+            pendingOrder: { cart, shippingAddress, totalAmount, couponCode }
         }).save();
 
         await sendOtp(existing.phone, existing.email, otpCode);
@@ -201,8 +213,8 @@ router.post('/place-order', async (req, res) => {
             : existing.email.replace(/(.{2}).*(@.*)/, '$1***$2');
 
         return res.status(200).json({
-            status:     'otp_required',
-            sessionId:  otpDoc._id,   // Frontend needs this to call verify-otp
+            status: 'otp_required',
+            sessionId: otpDoc._id,   // Frontend needs this to call verify-otp
             maskedPhone: masked
         });
 
@@ -227,11 +239,10 @@ router.post('/resend-otp', async (req, res) => {
 
         const user = await User.findById(old.userId);
         if (!user) return res.status(404).json({ message: 'User not found.' });
-
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
         const otpHash = await bcrypt.hash(otpCode, 6);
 
-        old.otp      = otpHash;
+        old.otp = otpHash;
         old.attempts = 0;
         await old.save();
 
@@ -279,7 +290,7 @@ router.post('/verify-otp', async (req, res) => {
         }
 
         // OTP valid – retrieve user + place order
-        const { cart, shippingAddress, totalAmount } = otpDoc.pendingOrder;
+        const { cart, shippingAddress, totalAmount, couponCode } = otpDoc.pendingOrder;
         const user = await User.findById(otpDoc.userId);
         if (!user) return res.status(404).json({ message: 'User not found.' });
 
@@ -288,15 +299,15 @@ router.post('/verify-otp', async (req, res) => {
         if (!addrExists) user.addresses.push(shippingAddress);
         await user.save();
 
-        const order = await createOrder(user._id, { cart, shippingAddress, totalAmount });
+        const order = await createOrder(user._id, { cart, shippingAddress, totalAmount, couponCode });
 
         // Clean up OTP doc
         await OtpStore.findByIdAndDelete(sessionId);
 
         return res.json({
             status: 'success',
-            token:  signToken(user._id),
-            user:   safeUser(user),
+            token: signToken(user._id),
+            user: safeUser(user),
             order
         });
 

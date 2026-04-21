@@ -9,10 +9,9 @@ interface HomePageProps {
 }
 
 export default function HomePage({ products }: HomePageProps) {
-  // Filter Data for specific home sections
   const newArrivals = products.filter(p => p.category === 'New Arrival' || p.isNewProduct);
-  const kurtis = products.filter(p => p.category === 'Kurti');
-  const tshirts = products.filter(p => p.category === 'T-Shirt');
+  const traditional = products.filter(p => p.category === 'Traditional wear');
+  const tshirts = products.filter(p => p.category === 'T-shirts');
   const bestSellers = products.filter(p => p.category === 'Best Seller' || p.isBestSeller);
 
   return (
@@ -20,7 +19,6 @@ export default function HomePage({ products }: HomePageProps) {
       <Hero />
       <TrustBar />
 
-      {/* 1. NEW ARRIVAL - Max 18, 6 Columns */}
       <ProductGrid
         title="NEW ARRIVAL"
         products={newArrivals}
@@ -28,38 +26,34 @@ export default function HomePage({ products }: HomePageProps) {
         columns={6}
       />
 
-      {/* 2. THE KURTI - Max 8, 4 Columns, Banner Left */}
       <ProductGrid
-        title="THE KURTI"
-        products={kurtis}
+        title="TRADITIONAL WEAR"
+        products={traditional}
         maxItems={8}
         columns={4}
-        featureImage="https://images.unsplash.com/photo-1693988102135-ffbe05f056ec?q=80&w=800"
-        featureLabel="Kurti, Tunic & Tops"
+        featureImage="https://images.unsplash.com/photo-1514316454349-750a7fd3da3a?q=80&w=800"
+        featureLabel="Panjabi, Sherwani & Kabli"
       />
 
-      {/* 3. T-SHIRT - Max 8, 4 Columns, Banner Right */}
       <ProductGrid
-        title="T-SHIRT"
+        title="T-SHIRTS"
         products={tshirts}
         maxItems={8}
         columns={4}
-        featureImage="https://images.unsplash.com/photo-1622445275992-e7efb32d2257?q=80&w=800"
-        featureLabel="Women's Designer T-shirt"
+        featureImage="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=800"
+        featureLabel="Basic, Printed & Polo"
         reverse={true}
       />
 
-      {/* 4. BEST SELLER - Max 12, 6 Columns */}
       <ProductGrid
         title="BEST SELLER"
         products={bestSellers}
         maxItems={12}
         columns={6}
       />
-    <CountdownBanner 
-  targetDate="2026-04-20T23:59:59" 
-  isVisible={true} 
-/>
+
+      {/* CountdownBanner reads from SiteConfigContext — no props needed */}
+      <CountdownBanner />
     </main>
   );
 }

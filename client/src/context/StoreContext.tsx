@@ -2,6 +2,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { API_URL } from '../config';
 
 const StoreContext = createContext<any>(null);
 
@@ -32,7 +33,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (savedCart) setCart(JSON.parse(savedCart));
 
       if (token) {
-        const API_URL = 'https://eloriabd.vercel.app';
         fetch(`${API_URL}/api/user/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
@@ -75,7 +75,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (isInitialDbLoaded && user) {
       const timeout = setTimeout(() => {
         const token = localStorage.getItem('eloria_token');
-        const API_URL = 'https://eloriabd.vercel.app';
         fetch(`${API_URL}/api/user/update`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSiteConfig } from '../context/SiteConfigContext';
 
 // Ensure the image exists at this path
 import flashBanner from '../assets/flashsalebg.jpg';
@@ -45,12 +46,21 @@ const LightningBolt = () => (
     </motion.span>
 );
 
-export default function CountdownBanner({
-    offerName = "FLASH DEAL",
-    description = "Offer on all products! Hurry before it ends.",
-    targetDate = "2025-06-01T00:00:00",
-    isVisible = true
-}: CountdownProps) {
+export default function CountdownBanner({ 
+    offerName: propsOfferName, 
+    description: propsDescription, 
+    targetDate: propsTargetDate, 
+    isVisible: propsIsVisible 
+}: CountdownProps = {}) {
+    const { config } = useSiteConfig();
+    const countdownZone = config?.offerZones?.countdown;
+
+    const isActive = propsIsVisible ?? (countdownZone?.isActive ?? false);
+    const offerName = propsOfferName ?? (isActive && countdownZone?.offerName ? countdownZone.offerName : "FLASH DEAL");
+    const description = propsDescription ?? (isActive && countdownZone?.description ? countdownZone.description : "Offer on all products! Hurry before it ends.");
+    const targetDate = propsTargetDate ?? (isActive && countdownZone?.expiresAt ? countdownZone.expiresAt : "2025-06-01T00:00:00");
+    const bgImage = isActive && countdownZone?.bgImage ? countdownZone.bgImage : flashBanner;
+
     const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
     useEffect(() => {
@@ -70,7 +80,7 @@ export default function CountdownBanner({
         return () => clearInterval(timer);
     }, [targetDate]);
 
-    if (!isVisible) return null;
+    if (!isActive) return null;
 
     return (
         <section className="relative py-20 px-6 overflow-hidden text-center border-y-4 border-eloria-rose">
@@ -79,7 +89,7 @@ export default function CountdownBanner({
             <div
                 className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-transform duration-[10s] hover:scale-105"
                 style={{
-                    backgroundImage: `url(${flashBanner})`,
+                    backgroundImage: `url(${bgImage})`,
                     backgroundColor: "#1a1a1a"
                 }}
             />
@@ -109,7 +119,7 @@ export default function CountdownBanner({
 
                     {/* Description */}
                     <p className="text-lg md:text-2xl text-white/90 font-light mb-6 italic tracking-wide max-w-2xl  mx-auto">
-                        "{description}"
+                        &ldquo;{description}&rdquo;
                     </p>
                     {/* Countdown Timer */}
                     <div className="flex justify-center gap-2 md:gap-8 mb-8">

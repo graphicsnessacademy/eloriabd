@@ -11,7 +11,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     const [query, setQuery] = useState('');
     const navigate = useNavigate();
 
-    const trendingTags = ['t-shirt', 'jeans', 'blue', 'denim', 'slim', 'leather', 'saree', 'kurti', 'hoodie'];
+    const trendingTags = ['panjabi', 't-shirt', 'casual shirt', 'jeans', 'hoodie', 'suit'];
 
     const handleSearch = (e: React.FormEvent | string) => {
         const searchTerm = typeof e === 'string' ? e : query;

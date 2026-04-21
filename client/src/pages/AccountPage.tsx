@@ -6,6 +6,7 @@ import {
     CheckCircle, Home, Briefcase, ShieldCheck
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
+import { API_URL } from '../config';
 
 // ─────────────────────────────────────────────
 // Types
@@ -69,7 +70,6 @@ function DashboardTab({ user, onTabChange }: { user: any; onTabChange: (t: Tab) 
             try {
                 const token = localStorage.getItem('eloria_token');
                 const userId = user._id || user.id;
-                const API_URL = 'https://eloriabd.vercel.app';
                 const res = await fetch(`${API_URL}/api/orders/user/${userId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -101,7 +101,6 @@ function DashboardTab({ user, onTabChange }: { user: any; onTabChange: (t: Tab) 
         setIsSaving(true);
         try {
             const token = localStorage.getItem('eloria_token');
-            const API_URL = 'https://eloriabd.vercel.app';
             const res = await fetch(`${API_URL}/api/user/update`, {
                 method: 'PUT',
                 headers: { 
@@ -262,8 +261,6 @@ function AddressTab() {
         country: 'Bangladesh', district: '', area: '', postCode: '', address: ''
     };
     const [form, setForm] = useState<Omit<Address, 'id'>>(emptyForm);
-
-    const API_URL = 'https://eloriabd.vercel.app';
 
     const syncAddresses = async (newAddresses: Address[]) => {
         setIsSaving(true);
@@ -524,7 +521,7 @@ function CartTab() {
                                     )}
                                 </div>
                                 <div className="flex items-center justify-between mt-2">
-                                    <span className="text-xs font-bold text-gray-900">₹{(item.price * (item.quantity || 1)).toLocaleString()}</span>
+                                    <span className="text-xs font-bold text-gray-900">৳{(item.price * (item.quantity || 1)).toLocaleString()}</span>
                                     {/* Qty controls */}
                                     <div className="flex items-center gap-1">
                                         <button
@@ -559,7 +556,7 @@ function CartTab() {
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.3em] text-gray-500 mb-4">Order Summary</p>
                 <div className="flex justify-between text-xs text-gray-600">
                     <span>Subtotal ({totalItems} items)</span>
-                    <span className="font-bold">₹{subtotal.toLocaleString()}</span>
+                    <span className="font-bold">৳{subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-xs text-gray-600">
                     <span>Shipping</span>
@@ -567,7 +564,7 @@ function CartTab() {
                 </div>
                 <div className="border-t border-gray-200 pt-3 flex justify-between text-sm font-bold text-gray-900">
                     <span>Total</span>
-                    <span>₹{subtotal.toLocaleString()}</span>
+                    <span>৳{subtotal.toLocaleString()}</span>
                 </div>
                 <Link
                     to="/checkout"
@@ -638,9 +635,9 @@ function WishlistTab({ products }: { products: any[] }) {
                                 </Link>
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <span className="text-xs font-bold text-gray-900">₹{product.price.toLocaleString()}</span>
+                                        <span className="text-xs font-bold text-gray-900">৳{product.price.toLocaleString()}</span>
                                         {isSale && product.originalPrice && (
-                                            <span className="text-[10px] text-gray-400 line-through ml-1.5">₹{product.originalPrice.toLocaleString()}</span>
+                                            <span className="text-[10px] text-gray-400 line-through ml-1.5">৳{product.originalPrice.toLocaleString()}</span>
                                         )}
                                     </div>
                                 </div>
@@ -679,7 +676,6 @@ function OrdersTab({ user }: { user: any }) {
             try {
                 const token = localStorage.getItem('eloria_token');
                 const userId = user._id || user.id;
-                const API_URL = 'https://eloriabd.vercel.app';
                 const res = await fetch(`${API_URL}/api/orders/user/${userId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -716,19 +712,31 @@ function OrdersTab({ user }: { user: any }) {
     }
 
     const getStatusStyles = (status: string) => {
-        switch (status) {
-            case 'Completed': return 'bg-green-50 text-green-700 border-green-200';
-            case 'Cancelled': return 'bg-[#D4537E]/10 text-[#D4537E] border-[#D4537E]/20';
-            default: return 'bg-blue-50 text-blue-700 border-blue-200'; // Ongoing
+        const s = status || 'Pending';
+        switch (s) {
+            case 'Delivered': 
+            case 'Completed': 
+                return 'bg-green-50 text-green-700 border-green-200';
+            case 'Cancelled': 
+            case 'Returned': 
+                return 'bg-[#D4537E]/10 text-[#D4537E] border-[#D4537E]/20';
+            case 'Pending':
+                return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+            case 'Confirmed':
+                return 'bg-blue-50 text-blue-700 border-blue-200';
+            case 'Packaged':
+                return 'bg-purple-50 text-purple-700 border-purple-200';
+            case 'On Courier':
+                return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+            default: 
+                return 'bg-gray-50 text-gray-700 border-gray-200';
         }
     };
     
     const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'Completed': return 'Delivered';
-            case 'Cancelled': return 'Cancelled';
-            default: return 'In Progress'; // Ongoing
-        }
+        const s = status || 'Pending';
+        if (s === 'Completed') return 'Delivered';
+        return s;
     };
 
     return (
@@ -749,11 +757,11 @@ function OrdersTab({ user }: { user: any }) {
                             </div>
                             <div>
                                 <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-1">Total</p>
-                                <p className="text-xs font-bold text-gray-900">₹{order.totalAmount?.toLocaleString()}</p>
+                                <p className="text-xs font-bold text-gray-900">৳{order.totalAmount?.toLocaleString()}</p>
                             </div>
                             <div className="ml-auto flex items-center">
-                                <span className={`px-2.5 py-1 rounded-sm border text-[9px] font-extrabold uppercase tracking-widest ${getStatusStyles(order.orderStatus)}`}>
-                                    {getStatusLabel(order.orderStatus)}
+                                <span className={`px-2.5 py-1 rounded-sm border text-[9px] font-extrabold uppercase tracking-widest ${getStatusStyles(order.status || order.orderStatus)}`}>
+                                    {getStatusLabel(order.status || order.orderStatus)}
                                 </span>
                             </div>
                         </div>
@@ -775,7 +783,7 @@ function OrdersTab({ user }: { user: any }) {
                                         </div>
                                     </div>
                                     <div className="text-right shrink-0">
-                                        <p className="text-xs font-bold text-gray-900">₹{item.price.toLocaleString()}</p>
+                                        <p className="text-xs font-bold text-gray-900">৳{item.price.toLocaleString()}</p>
                                     </div>
                                 </div>
                             ))}

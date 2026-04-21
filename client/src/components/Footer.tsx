@@ -1,4 +1,6 @@
 import { ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CATEGORIES } from '../constants/categories';
 
 const Facebook = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -46,10 +48,9 @@ export default function Footer() {
                     <div>
                         <h4 className="text-eloria-lavender font-bold text-xs uppercase tracking-[0.2em] mb-8">Collections</h4>
                         <ul className="space-y-4 text-white/70 text-sm">
-                            <li><a href="#" className="hover:text-eloria-pink transition-colors">Signature Sarees</a></li>
-                            <li><a href="#" className="hover:text-eloria-pink transition-colors">The Kurti Edit</a></li>
-                            <li><a href="#" className="hover:text-eloria-pink transition-colors">Fusion Wear</a></li>
-                            <li><a href="#" className="hover:text-eloria-pink transition-colors">Bridal Couture</a></li>
+                            {CATEGORIES.slice(0, 4).map(cat => (
+                                <li key={cat.slug}><Link to={`/shop/${cat.slug}`} className="hover:text-eloria-pink transition-colors">{cat.name}</Link></li>
+                            ))}
                         </ul>
                     </div>
 

@@ -11,20 +11,20 @@ interface ProductGridProps {
   reverse?: boolean;
 }
 
-export default function ProductGrid({ 
-  title, products = [], maxItems, columns = 4, featureImage, featureLabel, reverse 
+export default function ProductGrid({
+  title, products = [], maxItems, columns = 4, featureImage, featureLabel, reverse
 }: ProductGridProps) {
-  
+
   const displayItems = products.slice(0, maxItems - 1);
-  
-if (products.length > 0) {
-  displayItems.push({
-    id: `view-more-${title}`,
-    isViewMore: true,
-    image: products[0]?.image,
-    categoryTarget: title.toLowerCase().replace('the ', '').trim().replace(/\s+/g, '-')
-  });
-}
+
+  if (products.length > 0) {
+    displayItems.push({
+      id: `view-more-${title}`,
+      isViewMore: true,
+      image: products[0]?.image,
+      categoryTarget: title.toLowerCase().trim().replace(/\s+/g, '-')
+    });
+  }
   return (
     <section className="mb-10">
       {/* beige Title Bar */}
@@ -36,7 +36,7 @@ if (products.length > 0) {
 
       {/* Main Container: Flex-col on mobile, Flex-row on desktop */}
       <div className={`max-w-[1440px] mx-auto px-4 flex flex-col ${reverse ? 'lg:flex-row-reverse' : 'lg:flex-row'} gap-4`}>
-        
+
         {/* RESPONSIVE FEATURE BANNER */}
         {featureImage && (
           <div className="w-full lg:w-1/4 relative group overflow-hidden bg-gray-100 rounded-sm">
@@ -45,10 +45,10 @@ if (products.length > 0) {
                DESKTOP: aspect-auto lg:h-full (Tall)
             */}
             <div className="relative aspect-[16/7] lg:aspect-auto lg:h-full min-h-[180px]">
-              <img 
-                src={featureImage} 
-                className="absolute inset-0 w-full h-full object-cover object-top" 
-                alt="feature" 
+              <img
+                src={featureImage}
+                className="absolute inset-0 w-full h-full object-cover object-top"
+                alt="feature"
               />
               <div className="absolute inset-0 bg-black/20" />
               <div className="absolute inset-0 flex flex-col justify-end items-center pb-6 text-white text-center">
@@ -65,7 +65,7 @@ if (products.length > 0) {
         {/* PRODUCT GRID */}
         <div className={`${featureImage ? 'lg:w-3/4' : 'w-full'} grid grid-cols-2 md:grid-cols-4 ${columns === 6 ? 'lg:grid-cols-6' : 'lg:grid-cols-4'} gap-2 md:gap-3`}>
           {displayItems.map((p) => (
-            <ProductCard key={p.id} product={p} />
+            <ProductCard key={p._id || p.id} product={p} />
           ))}
         </div>
       </div>

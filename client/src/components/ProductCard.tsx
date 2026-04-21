@@ -8,7 +8,8 @@ interface Product {
     name: string;
     price: number;
     originalPrice?: number;
-    image: string;
+    image?: string;
+    images?: { url: string, publicId: string, isPrimary: boolean }[];
     category?: string;
     isNewProduct?: boolean;
     isViewMore?: boolean;
@@ -22,6 +23,14 @@ export default function ProductCard({ product }: { product: Product }) {
     const navigate = useNavigate();
 
     const productId = product._id || product.id;
+    
+    // dynamically determine either the new Schema images buffer or legacy fallback
+    let heroImageUrl = product.image;
+    if (product.images && product.images.length > 0) {
+        const primaryImg = product.images.find(img => img.isPrimary) || product.images[0];
+        heroImageUrl = primaryImg.url;
+    }
+    heroImageUrl = heroImageUrl || 'https://via.placeholder.com/400?text=No+Image';
 
     const isNew = product.isNewProduct || product.category === 'New Arrival';
     const isOut = product.inStock === false || product.stock === 0;
@@ -39,7 +48,7 @@ export default function ProductCard({ product }: { product: Product }) {
             >
                 <div className="w-full h-full bg-black flex justify-center items-center object-cover group-hover:scale-110 transition-transform duration-700">
                     <img
-                        src={product.image}
+                        src={heroImageUrl}
                         className="absolute inset-0 opacity-50 blur-[2px]"
                         alt="View More"
                     />
@@ -65,7 +74,7 @@ export default function ProductCard({ product }: { product: Product }) {
                 {/* 1. LINK TO PRODUCT DETAIL PAGE (IMAGE) */}
                 <Link to={`/product/${productId}`} className="block w-full h-full">
                     <img
-                        src={product.image}
+                        src={heroImageUrl}
                         alt={product.name}
                         className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${isOut ? 'grayscale opacity-60' : ''
                             }`}
@@ -159,11 +168,11 @@ export default function ProductCard({ product }: { product: Product }) {
                 ) : (
                     <div className="flex items-center justify-center gap-1.5">
                         <span className="font-bold text-[12px] text-black font-sans">
-                            ₹{product.price.toLocaleString()}
+                            ৳{product.price.toLocaleString()}
                         </span>
                         {isSale && product.originalPrice && (
                             <span className="text-[11px] text-gray-400 line-through">
-                                ₹{product.originalPrice.toLocaleString()}
+                                ৳{product.originalPrice.toLocaleString()}
                             </span>
                         )}
                     </div>

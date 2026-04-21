@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Filter, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '../components/ProductCard';
 import CountdownBanner from '../components/CountdownBanner';
+import { CATEGORIES } from '../constants/categories';
 
 interface ShopPageProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12,426 +13,335 @@ interface ShopPageProps {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** "New Arrival" → "new-arrival", "T-Shirt" → "t-shirt" */
-const toSlug = (str: string) =>
-  (str ?? '').toLowerCase().trim().replace(/\s+/g, '-');
+const normalize = (s: string): string =>
+  (s || '').toLowerCase().replace(/[\s\-_]+/g, '');
 
-/** Case-insensitive equality */
-const ciEquals = (a: string = '', b: string = '') =>
-  a.toLowerCase().trim() === b.toLowerCase().trim();
+const fuzzyMatch = (field: string, keyword: string): boolean => {
+  if (!field || !keyword) return false;
+  const nField = normalize(field);
+  const nKey = normalize(keyword);
+  return nField.includes(nKey) || nKey.includes(nField);
+};
 
-/** Special URL slugs that map to boolean flags, not a category string */
-const SPECIAL_SLUGS = ['new-arrival', 'best-seller'];
-
-// ─── Filter Sidebar Content (extracted to avoid re-creation inside render) ──
+// ─── Sub-Components ──────────────────────────────────────────────────────────
 
 interface FilterContentProps {
   openFilters: { price: boolean; type: boolean; size: boolean };
-  toggleSection: (s: 'price' | 'type' | 'size') => void;
+  setOpenFilters: React.Dispatch<React.SetStateAction<{ price: boolean; type: boolean; size: boolean }>>;
   priceRange: number;
-  setPriceRange: (v: number) => void;
+  setPriceRange: React.Dispatch<React.SetStateAction<number>>;
   selectedTypes: string[];
-  setSelectedTypes: React.Dispatch<React.SetStateAction<string[]>>;
-  selectedSizes: string[];
-  setSelectedSizes: React.Dispatch<React.SetStateAction<string[]>>;
-  availableTypes: string[];
+  toggleType: (type: string) => void;
 }
 
-function FilterContent({
-  openFilters, toggleSection,
-  priceRange, setPriceRange,
-  selectedTypes, setSelectedTypes,
-  selectedSizes, setSelectedSizes,
-  availableTypes,
-}: FilterContentProps) {
-  const SIZES = ['S', 'M', 'L', 'XL', '2XL'];
-
-  // Use TYPES passed from parent (dynamic from DB), fallback to static list
-  const TYPES = availableTypes.length > 0
-    ? availableTypes
-    : ['Saree', 'Kurti', 'T-Shirt', 'Gown', 'Western', 'Party Wear'];
-
-  const toggleType = (type: string) =>
-    setSelectedTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
-
-  const toggleSize = (size: string) =>
-    setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]);
-
-  return (
-    <div className="space-y-8">
-      {/* PRICE FILTER */}
-      <div className="border-b border-gray-100 pb-6">
-        <button
-          onClick={() => toggleSection('price')}
-          className="flex items-center justify-between w-full text-[11px] font-bold uppercase tracking-[0.2em] text-gray-800 mb-4"
-        >
-          Price {openFilters.price ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        </button>
-        {openFilters.price && (
-          <div className="px-2">
-            <input
-              type="range" min="0" max="10000" step="100"
-              className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
-              value={priceRange}
-              onChange={(e) => setPriceRange(parseInt(e.target.value))}
-            />
-            <p className="text-[11px] mt-4 text-gray-500 font-medium">
-              Price: <span className="text-black font-bold">Tk 0 — Tk {priceRange.toLocaleString()}</span>
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* PRODUCT TYPE FILTER */}
-      <div className="border-b border-gray-100 pb-6">
-        <button
-          onClick={() => toggleSection('type')}
-          className="flex items-center justify-between w-full text-[11px] font-bold uppercase tracking-[0.2em] text-gray-800 mb-4"
-        >
-          Product Type {openFilters.type ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        </button>
-        {openFilters.type && (
-          <div className="space-y-3">
-            {TYPES.map((type) => (
-              <label key={type} className="flex items-center gap-3 group cursor-pointer select-none">
-                <div
-                  className={`w-4 h-4 border rounded flex items-center justify-center transition-all shrink-0 ${
-                    selectedTypes.includes(type) ? 'bg-black border-black text-white' : 'border-gray-300'
-                  }`}
-                  onClick={() => toggleType(type)}
-                >
-                  {selectedTypes.includes(type) && <Check size={10} />}
-                </div>
-                <input
-                  type="checkbox" className="hidden"
-                  checked={selectedTypes.includes(type)}
-                  onChange={() => toggleType(type)}
-                />
-                <span className="text-sm text-gray-600 group-hover:text-black transition-colors">{type}</span>
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* SIZE FILTER */}
-      <div className="pb-6">
-        <button
-          onClick={() => toggleSection('size')}
-          className="flex items-center justify-between w-full text-[11px] font-bold uppercase tracking-[0.2em] text-gray-800 mb-4"
-        >
-          Size {openFilters.size ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        </button>
-        {openFilters.size && (
-          <div className="flex flex-wrap gap-2">
-            {SIZES.map((size) => (
-              <button
-                key={size}
-                onClick={() => toggleSize(size)}
-                className={`w-10 h-10 border text-[10px] font-bold transition-all rounded-sm uppercase ${
-                  selectedSizes.includes(size)
-                    ? 'bg-black border-black text-white'
-                    : 'border-gray-200 text-gray-400 hover:border-black'
-                }`}
-              >
-                {size}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+const FilterContent = ({
+  openFilters,
+  setOpenFilters,
+  priceRange,
+  setPriceRange,
+  selectedTypes,
+  toggleType
+}: FilterContentProps) => (
+  <div className="space-y-8">
+    <div className="border-b border-gray-100 pb-6">
+      <button
+        onClick={() => setOpenFilters((f) => ({ ...f, price: !f.price }))}
+        className="flex items-center justify-between w-full text-[11px] font-bold uppercase tracking-[0.2em] mb-4"
+      >
+        Price {openFilters.price ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+      </button>
+      {openFilters.price && (
+        <div className="px-2">
+          <input
+            type="range" min="0" max="15000" step="100"
+            className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
+            value={priceRange}
+            onChange={(e) => setPriceRange(parseInt(e.target.value))}
+          />
+          <p className="text-[11px] mt-4 text-gray-500 font-medium">
+            Max Price: <span className="text-black font-bold">Tk {priceRange.toLocaleString()}</span>
+          </p>
+        </div>
+      )}
     </div>
-  );
-}
 
-// ─── Main Page ───────────────────────────────────────────────────────────────
+    <div className="border-b border-gray-100 pb-6">
+      <button
+        onClick={() => setOpenFilters((f) => ({ ...f, type: !f.type }))}
+        className="flex items-center justify-between w-full text-[11px] font-bold uppercase tracking-[0.2em] mb-4"
+      >
+        Refine Category {openFilters.type ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+      </button>
+      {openFilters.type && (
+        <div className="space-y-3 h-[250px] overflow-y-auto no-scrollbar pr-2">
+          {CATEGORIES.map((cat) => (
+            <label
+              key={cat.name}
+              className="flex items-center justify-between group cursor-pointer"
+              onClick={() => toggleType(cat.name)}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-4 h-4 border rounded flex items-center justify-center transition-all ${selectedTypes.includes(cat.name)
+                    ? 'bg-black border-black text-white'
+                    : 'border-gray-300 group-hover:border-black'
+                    }`}
+                >
+                  {selectedTypes.includes(cat.name) && <Check size={10} />}
+                </div>
+                <input type="checkbox" className="hidden" readOnly checked={selectedTypes.includes(cat.name)} />
+                <span className="text-xs text-gray-600 group-hover:text-black transition-colors">{cat.name}</span>
+              </div>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+);
 
 export default function ShopPage({ products = [] }: ShopPageProps) {
   const { category } = useParams();
   const navigate = useNavigate();
 
-  // --- States ---
+  // --- UI States ---
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
-  const [priceRange, setPriceRange] = useState(10000);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [sortOption, setSortOption] = useState('Latest');
   const [openFilters, setOpenFilters] = useState({ price: true, type: true, size: true });
+  const [recentViewedIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('eloria_recent');
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  const toggleSection = (section: 'price' | 'type' | 'size') =>
-    setOpenFilters(prev => ({ ...prev, [section]: !prev[section] }));
+  // --- Filter States ---
+  const [priceRange, setPriceRange] = useState(15000);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [sortOption, setSortOption] = useState('Latest');
 
-  // --- Logic: Page Title ---
+
+
+  // --- Logic: 1. Dynamic Header Title ---
   const getPageTitle = () => {
     if (!category || category === 'all') return 'ALL COLLECTIONS';
     return category.replace(/-/g, ' ').toUpperCase();
   };
 
-  // --- Reset sidebar type/size when the URL category changes ---
-  // Prevents sidebar filters from conflicting with URL navigation
-  useEffect(() => {
-    setSelectedTypes([]);
-    setSelectedSizes([]);
-  }, [category]);
-
-  // --- Unique categories derived from the real product list ---
-  const availableTypes = useMemo(() => {
-    const seen = new Set<string>();
-    const types: string[] = [];
-    for (const p of products) {
-      const cat = (p.category ?? '').trim();
-      // Exclude special flag-based categories from the sidebar list
-      if (cat && !SPECIAL_SLUGS.includes(toSlug(cat)) && !seen.has(cat.toLowerCase())) {
-        seen.add(cat.toLowerCase());
-        types.push(cat); // keep original casing for display
-      }
-    }
-    return types.sort(); // alphabetical
-  }, [products]);
-
-  // --- Logic: Advanced Filtering & Sorting ---
+  // --- Logic: 2. Filtering ---
   const filteredProducts = useMemo(() => {
-    let result = products.filter((p) => {
+    return products.filter((p) => {
+      let matchesUrlKeyword = true;
 
-      // 1. ── URL Category Match ────────────────────────────────────────────
-      //    The URL param uses slugs (e.g. "new-arrival", "saree", "t-shirt").
-      //    We compare against the product's `category` field using slugs.
-      let categoryMatch = true;
-      if (category && category !== 'all') {
-        const slug = category.toLowerCase();
+      if (category && category !== 'all' && selectedTypes.length === 0) {
+        const searchKey = category.toLowerCase().replace(/-/g, ' ');
 
-        if (slug === 'new-arrival') {
-          // Match products flagged as new OR whose category text contains "new arrival"
-          categoryMatch =
+        if (searchKey === 'new arrival') {
+          matchesUrlKeyword =
             p.isNewProduct === true ||
-            (p.category ?? '').toLowerCase().includes('new arrival');
-        } else if (slug === 'best-seller') {
-          categoryMatch =
+            fuzzyMatch(p.category, 'new') ||
+            fuzzyMatch(p.category, 'newarrival');
+        } else if (searchKey === 'best seller') {
+          matchesUrlKeyword =
             p.isBestSeller === true ||
-            (p.category ?? '').toLowerCase().includes('best seller');
+            fuzzyMatch(p.category, 'bestseller') ||
+            fuzzyMatch(p.category, 'best');
         } else {
-          // Slugify both the URL param and the DB category, then compare.
-          // "T-Shirt" → "t-shirt", "Party Wear" → "party-wear"
-          categoryMatch = toSlug(p.category ?? '') === slug;
+          matchesUrlKeyword =
+            fuzzyMatch(p.category, searchKey) ||
+            fuzzyMatch(p.name, searchKey);
         }
       }
 
-      // 2. ── Price Filter ──────────────────────────────────────────────────
-      const priceMatch = p.price <= priceRange;
+      let matchesCheckbox = true;
+      if (selectedTypes.length > 0) {
+        matchesCheckbox = selectedTypes.some(
+          (type) =>
+            fuzzyMatch(p.category, type) ||
+            fuzzyMatch(p.name, type)
+        );
+      }
 
-      // 3. ── Sidebar Type Checkboxes (case-insensitive) ────────────────────
-      //    Only active on /shop (no URL category).  When a URL category is
-      //    already set, the sidebar type filter is skipped to avoid double-
-      //    filtering (which caused "0 results" on category pages).
-      const typeMatch =
-        category && category !== 'all'
-          ? true  // URL category already filters — sidebar type is bypassed
-          : selectedTypes.length === 0
-            ? true
-            : selectedTypes.some(t => ciEquals(p.category, t));
+      const matchesPrice = (p.price ?? 0) <= priceRange;
 
-      // 4. ── Size Filter ────────────────────────────────────────────────────
-      const sizeMatch =
-        selectedSizes.length === 0
-          ? true
-          : !p.sizes || p.sizes.length === 0
-            ? true
-            : selectedSizes.some(s => (p.sizes as string[]).some(ps => ciEquals(ps, s)));
-
-      return categoryMatch && priceMatch && typeMatch && sizeMatch;
+      return matchesUrlKeyword && matchesCheckbox && matchesPrice;
     });
+  }, [products, category, priceRange, selectedTypes]);
 
-    // Sort
+  // --- Logic: 3. Sorting ---
+  const sortedProducts = useMemo(() => {
+    const result = [...filteredProducts];
     if (sortOption === 'Price: Low to High') {
       result.sort((a, b) => a.price - b.price);
     } else if (sortOption === 'Price: High to Low') {
       result.sort((a, b) => b.price - a.price);
     } else {
-      result.sort((a, b) => (b._id || b.id || '').localeCompare(a._id || a.id || ''));
+      result.sort((a, b) =>
+        (b._id || b.id || '').localeCompare(a._id || a.id || '')
+      );
     }
-
     return result;
-  }, [products, category, priceRange, selectedTypes, selectedSizes, sortOption]);
+  }, [filteredProducts, sortOption]);
 
-  // --- Reset ---
+  // --- Logic: 4. Extra Sections (Related & Recent) ---
+  const recentProducts = useMemo(() =>
+    products.filter((p) => recentViewedIds.includes((p._id || p.id) as string)).slice(0, 6),
+    [recentViewedIds, products]
+  );
+
+  const relatedProducts = useMemo(() => {
+    // If we are in a category, show more from that category. 
+    // If not, show best sellers as "Related Masterpieces"
+    const baseList = category
+      ? products.filter(p => fuzzyMatch(p.category, category))
+      : products.filter(p => p.isBestSeller);
+
+    return baseList.slice(0, 5);
+  }, [products, category]);
+
   const handleReset = () => {
-    setPriceRange(10000);
+    setPriceRange(15000);
     setSelectedTypes([]);
-    setSelectedSizes([]);
     setSortOption('Latest');
     navigate('/shop');
   };
 
-  // --- Shared filter props ---
-  const filterProps: FilterContentProps = {
-    openFilters,
-    toggleSection,
-    priceRange,
-    setPriceRange,
-    selectedTypes,
-    setSelectedTypes,
-    selectedSizes,
-    setSelectedSizes,
-    availableTypes,
+  const toggleType = (type: string) => {
+    setSelectedTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
   };
+
+
 
   return (
     <div className="pt-[72px] bg-white min-h-screen">
-
-      {/* --- PAGE HEADER --- */}
       <div className="bg-[#f3f4f7] py-12 md:py-16 px-6 border-b border-gray-100">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-slate-900 tracking-tight transition-all duration-500 uppercase">
-            {getPageTitle()}
-          </h1>
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-slate-900 tracking-tight uppercase">{getPageTitle()}</h1>
           <div className="flex items-center gap-2 mt-4 text-[10px] text-gray-400 font-bold uppercase tracking-[0.3em]">
             <Link to="/" className="hover:text-black transition-colors">Home</Link>
             <span>/</span>
             <Link to="/shop" className="hover:text-black transition-colors">Shop</Link>
-            {category && (
-              <>
-                <span>/</span>
-                <span className="text-eloria-purple">{category.replace(/-/g, ' ')}</span>
-              </>
-            )}
+            {category && <><span>/</span><span className="text-eloria-purple">{category.replace(/-/g, ' ')}</span></>}
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-
-        {/* --- MOBILE FILTER TRIGGER BAR --- */}
-        <div className="flex lg:hidden items-center justify-between border border-gray-100 rounded-sm p-4 mb-8 bg-gray-50/50 sticky top-[75px] z-40 backdrop-blur-md">
-          <button
-            onClick={() => setIsFilterDrawerOpen(true)}
-            className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-700"
-          >
-            <Filter size={16} className="text-eloria-purple" />
-            Filters {(selectedTypes.length + selectedSizes.length > 0) && `(${selectedTypes.length + selectedSizes.length})`}
+        {/* Mobile Filter Bar */}
+        <div className="flex lg:hidden items-center justify-between border border-gray-100 p-4 mb-8 bg-gray-50/50 sticky top-[75px] z-40 backdrop-blur-md">
+          <button onClick={() => setIsFilterDrawerOpen(true)} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-700">
+            <Filter size={16} className="text-eloria-purple" /> Filters {selectedTypes.length > 0 && `(${selectedTypes.length})`}
           </button>
-          <div className="h-4 w-px bg-gray-200" />
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold text-gray-400 uppercase">Sort:</span>
-            <select
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value)}
-              className="text-[10px] font-bold border-none bg-transparent focus:ring-0 uppercase tracking-widest outline-none pr-6"
-            >
-              <option>Latest</option>
-              <option>Price: Low to High</option>
-              <option>Price: High to Low</option>
-            </select>
-          </div>
+          <select value={sortOption} onChange={(e) => setSortOption(e.target.value)} className="text-[10px] font-bold border-none bg-transparent outline-none">
+            <option>Latest</option>
+            <option>Price: Low to High</option>
+            <option>Price: High to Low</option>
+          </select>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-12">
-
-          {/* --- DESKTOP SIDEBAR --- */}
           <aside className="hidden lg:block w-64 flex-shrink-0">
             <div className="flex items-center justify-between mb-8 border-b border-black pb-2">
-              <h2 className="text-xl font-serif font-medium uppercase tracking-tight">Filters</h2>
-              <button
-                onClick={handleReset}
-                className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black underline underline-offset-4 transition-colors"
-              >
-                Reset
-              </button>
+              <h2 className="text-xl font-serif font-medium uppercase tracking-tight text-eloria-dark">Filters</h2>
+              <button onClick={handleReset} className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black underline underline-offset-4">Reset</button>
             </div>
-            <FilterContent {...filterProps} />
+            <FilterContent 
+              openFilters={openFilters}
+              setOpenFilters={setOpenFilters}
+              priceRange={priceRange}
+              setPriceRange={setPriceRange}
+              selectedTypes={selectedTypes}
+              toggleType={toggleType}
+            />
           </aside>
 
-          {/* --- PRODUCT GRID --- */}
           <div className="flex-grow">
-            {/* Desktop top bar */}
             <div className="hidden lg:flex items-center justify-between border-b border-gray-100 pb-4 mb-8">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
-                Showing {filteredProducts.length} results
-              </p>
-              <div className="flex items-center gap-4">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sort By</span>
-                <select
-                  value={sortOption}
-                  onChange={(e) => setSortOption(e.target.value)}
-                  className="text-xs font-bold border-none bg-transparent focus:ring-0 cursor-pointer uppercase tracking-tighter outline-none pr-8"
-                >
-                  <option>Latest</option>
-                  <option>Price: Low to High</option>
-                  <option>Price: High to Low</option>
-                </select>
-              </div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Showing {sortedProducts.length} results</p>
+              <select value={sortOption} onChange={(e) => setSortOption(e.target.value)} className="text-xs font-bold border-none bg-transparent cursor-pointer uppercase outline-none pr-8">
+                <option>Latest</option>
+                <option>Price: Low to High</option>
+                <option>Price: High to Low</option>
+              </select>
             </div>
 
-            {filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-                {filteredProducts.map(p => (
-                  <ProductCard key={p._id || p.id} product={p} />
-                ))}
-              </div>
-            ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+              {sortedProducts.map((p) => <ProductCard key={p._id || p.id} product={p} />)}
+            </div>
+
+            {sortedProducts.length === 0 && (
               <div className="py-32 text-center">
-                <p className="text-xl font-serif text-gray-400 italic">No products found matching these filters.</p>
-                <button
-                  onClick={handleReset}
-                  className="mt-4 text-eloria-purple text-xs font-bold uppercase tracking-widest underline underline-offset-4"
-                >
-                  Clear all filters
-                </button>
+                <p className="text-xl font-serif text-gray-400 italic">No products found for this selection.</p>
+                <button onClick={handleReset} className="mt-4 text-eloria-purple text-xs font-bold uppercase tracking-widest underline underline-offset-4">Reset all filters</button>
               </div>
             )}
+
+          </div>
+
+        </div>
+
+
+
+        {/* --- 1. RELATED MASTERPIECES (CENTERED GRID) --- */}
+        <div className="mt-24 text-center border-t border-gray-100 pt-20">
+          <div className="flex flex-col items-center mb-12">
+            <h2 className="text-3xl font-serif text-gray-900 mb-2">Related Masterpieces</h2>
+            <div className="w-12 h-0.5 bg-eloria-lavender"></div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            {relatedProducts.map(p => (
+              <ProductCard key={p._id || p.id} product={p} />
+            ))}
           </div>
         </div>
+
+        {/* --- 2. RECENTLY VIEWED (HORIZONTAL SCROLL) --- */}
+
+        {recentProducts.length > 0 && (
+          <div className="mt-24 text-center border-t border-gray-100 pt-20">
+            <div className="flex flex-col items-center mb-12">
+              <h2 className="text-3xl font-serif text-gray-900 mb-2">Recently Viewed Products</h2>
+              <div className="w-12 h-0.5 bg-eloria-lavender"></div>
+            </div>
+            <div className="flex overflow-x-auto gap-6 no-scrollbar pb-6">
+              {recentProducts.map(p => (
+                <div key={p._id || p.id} className="min-w-[200px] w-[200px] flex-shrink-0">
+                  <ProductCard product={p} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* --- MOBILE FILTER DRAWER --- */}
       <AnimatePresence>
         {isFilterDrawerOpen && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsFilterDrawerOpen(false)}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[140]"
-            />
-            <motion.div
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-0 h-full w-[85%] max-w-sm bg-white z-[150] shadow-2xl flex flex-col"
-            >
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
-                <h2 className="text-xl font-serif font-bold uppercase tracking-tight text-eloria-dark">Refine By</h2>
-                <button onClick={() => setIsFilterDrawerOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-black">
-                  <X size={24} />
-                </button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsFilterDrawerOpen(false)} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[140]" />
+            <motion.div initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', damping: 25 }} className="fixed left-0 top-0 h-full w-[85%] max-w-sm bg-white z-[150] shadow-2xl flex flex-col">
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                <h2 className="text-xl font-serif font-bold uppercase tracking-tight">Refine By</h2>
+                <button onClick={() => setIsFilterDrawerOpen(false)} className="p-2 text-gray-400 hover:text-black"><X size={24} /></button>
               </div>
               <div className="flex-grow overflow-y-auto p-6 no-scrollbar">
-                <FilterContent {...filterProps} />
+                <FilterContent 
+                  openFilters={openFilters}
+                  setOpenFilters={setOpenFilters}
+                  priceRange={priceRange}
+                  setPriceRange={setPriceRange}
+                  selectedTypes={selectedTypes}
+                  toggleType={toggleType}
+                />
               </div>
               <div className="p-6 border-t border-gray-100 grid grid-cols-2 gap-4 bg-gray-50">
-                <button
-                  onClick={handleReset}
-                  className="py-4 border border-gray-200 text-[10px] font-bold uppercase tracking-widest text-gray-500 rounded-sm hover:bg-white transition-colors"
-                >
-                  Clear All
-                </button>
-                <button
-                  onClick={() => setIsFilterDrawerOpen(false)}
-                  className="py-4 bg-black text-white text-[10px] font-bold uppercase tracking-widest rounded-sm shadow-lg active:scale-95 transition-transform"
-                >
-                  Show Results
-                </button>
+                <button onClick={handleReset} className="py-4 border border-gray-200 text-[10px] font-bold uppercase tracking-widest text-gray-500 rounded-sm">Clear All</button>
+                <button onClick={() => setIsFilterDrawerOpen(false)} className="py-4 bg-black text-white text-[10px] font-bold uppercase tracking-widest rounded-sm">Show Results</button>
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* --- FOOTER BANNER --- */}
-      <div className="mt-20">
-        <CountdownBanner targetDate="2026-04-20T23:59:59" isVisible={true} />
-      </div>
+      <CountdownBanner targetDate="2026-05-30T23:59:59" isVisible={true} />
     </div>
   );
 }

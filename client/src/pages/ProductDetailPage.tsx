@@ -15,7 +15,8 @@ interface Product {
     name: string;
     price: number;
     originalPrice?: number;
-    image: string;
+    image?: string;
+    images?: { url: string, publicId: string, isPrimary: boolean }[];
     category: string;
     isNewProduct?: boolean;
 }
@@ -35,6 +36,15 @@ export default function ProductDetailPage({ products }: { products: Product[] })
     // Find the current product
     const product = useMemo(() => products.find((p) => (p._id || p.id) === id), [id, products]);
 
+    const heroImageUrl = useMemo(() => {
+        if (!product) return 'https://via.placeholder.com/400?text=No+Image';
+        if (product.images && product.images.length > 0) {
+            const pImage = product.images.find(img => img.isPrimary) || product.images[0];
+            return pImage.url;
+        }
+        return product.image || 'https://via.placeholder.com/400?text=No+Image';
+    }, [product]);
+
     // 1. Logic for Recently Viewed (Local Storage Tracking)
     useEffect(() => {
         if (id) {
@@ -52,12 +62,19 @@ export default function ProductDetailPage({ products }: { products: Product[] })
     }, [id]);
 
     const recentProducts = useMemo(() =>
-        products.filter((p) => recentViewedIds.includes((p._id || p.id) as string)),
+        products.filter((p) => {
+            const pid = String(p._id || p.id);
+            return recentViewedIds.includes(pid);
+        }),
         [recentViewedIds, products]
     );
+
     // 2. Logic for Related Masterpieces
     const relatedProducts = useMemo(() =>
-        products.filter((p) => p.category === product?.category && (p._id || p.id) !== id).slice(0, 5),
+        products.filter((p) => {
+            const pid = String(p._id || p.id);
+            return p.category?.trim() === product?.category?.trim() && pid !== String(id);
+        }).slice(0, 5),
         [product, products, id]
     );
 
@@ -65,7 +82,7 @@ export default function ProductDetailPage({ products }: { products: Product[] })
     useEffect(() => {
         if (product) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
-            setActiveImage(product.image);
+            setActiveImage(heroImageUrl);
             setSelectedColor('Default'); // Reset selection
         }
         window.scrollTo(0, 0);
@@ -116,20 +133,32 @@ export default function ProductDetailPage({ products }: { products: Product[] })
                     <div className="lg:w-1/2 flex space-x-4">
                         {/* Thumbnails */}
                         <div className="hidden sm:flex flex-col space-y-4 w-20">
-                            {[product.image, product.image, product.image].map((img, i) => (
-                                <div
-                                    key={i}
-                                    onClick={() => setActiveImage(img)}
-                                    className={`w-full aspect-[2/3] overflow-hidden cursor-pointer border transition-all ${(activeImage || product.image) === img ? 'border-black p-0.5' : 'border-transparent opacity-50 hover:opacity-100'}`}
-                                >
-                                    <img src={img || undefined} className="w-full h-full object-cover" />
-                                </div>
-                            ))}
+                            {(() => {
+                                // Extract images natively or fallback to single legacy image
+                                let thumbnails: string[] = [];
+                                if (product.images && product.images.length > 0) {
+                                    thumbnails = product.images.map(img => img.url);
+                                } else if (product.image) {
+                                    thumbnails = [product.image]; // legacy fallback (no need to repeat 3 times)
+                                } else {
+                                    thumbnails = [heroImageUrl];
+                                }
+                                
+                                return thumbnails.map((img, i) => (
+                                    <div
+                                        key={i}
+                                        onClick={() => setActiveImage(img)}
+                                        className={`w-full aspect-[2/3] overflow-hidden cursor-pointer border transition-all ${(activeImage || heroImageUrl) === img ? 'border-black p-0.5' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                                    >
+                                        <img src={img || undefined} className="w-full h-full object-cover" />
+                                    </div>
+                                ));
+                            })()}
                         </div>
 
                         {/* Main Image Viewport */}
                         <div className="relative flex-1 group">
-                            <img src={activeImage || product.image || undefined} alt={product.name} className="w-full h-auto object-cover rounded-sm" />
+                            <img src={activeImage || heroImageUrl || undefined} alt={product.name} className="w-full h-auto object-cover rounded-sm" />
                             <button className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full shadow hover:bg-white">
                                 <ChevronLeft size={16} />
                             </button>
@@ -150,10 +179,10 @@ export default function ProductDetailPage({ products }: { products: Product[] })
                         <h1 className="text-4xl font-serif text-gray-900 mt-2 mb-4 leading-tight">{product.name}</h1>
 
                         <div className="flex items-center space-x-4 mb-6">
-                            <span className="text-2xl font-bold text-gray-900">₹{product.price.toLocaleString()}.00</span>
+                            <span className="text-2xl font-bold text-gray-900">৳{product.price.toLocaleString()}.00</span>
                             {product.originalPrice && (
                                 <>
-                                    <span className="text-gray-400 line-through text-lg">₹{product.originalPrice.toLocaleString()}.00</span>
+                                    <span className="text-gray-400 line-through text-lg">৳{product.originalPrice.toLocaleString()}.00</span>
                                     <span className="bg-eloria-rose/10 text-eloria-rose text-[10px] px-2 py-1 font-bold rounded uppercase tracking-tighter">SAVE {discount}%</span>
                                 </>
                             )}
@@ -194,7 +223,7 @@ export default function ProductDetailPage({ products }: { products: Product[] })
                             <div>
                                 <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">Select Color: <span className="text-black">{selectedColor === 'Default' ? 'Original' : selectedColor}</span></span>
                                 <div className="flex space-x-3">
-                                    {[{ name: 'Original', img: product.image }, { name: 'Vibrant', img: product.image }].map((col, i) => (
+                                    {[{ name: 'Original', img: heroImageUrl }, { name: 'Vibrant', img: heroImageUrl }].map((col, i) => (
                                         <div
                                             key={i}
                                             onClick={() => setSelectedColor(col.name)}

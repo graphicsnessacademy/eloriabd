@@ -53,11 +53,18 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
                             {cart.length > 0 ? (
                                 cart.map((item: any, idx: number) => {
                                     const itemId = item._id || item.id;
+                                    let heroImageUrl = item.image;
+                                    if (item.images && item.images.length > 0) {
+                                        const pImage = item.images.find((img: any) => img.isPrimary) || item.images[0];
+                                        heroImageUrl = pImage.url;
+                                    }
+                                    heroImageUrl = heroImageUrl || 'https://via.placeholder.com/400?text=No+Image';
+
                                     return (
                                         <div key={`${itemId}-${item.size}-${item.color}-${idx}`} className="flex gap-4 group animate-in fade-in slide-in-from-right-4 duration-300">
                                             {/* Item Image */}
                                             <div className="w-24 h-32 bg-gray-50 rounded-lg overflow-hidden shrink-0 border border-gray-100 shadow-sm">
-                                                <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                                <img src={heroImageUrl} alt={item.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                                             </div>
 
                                             {/* Item Details */}
@@ -98,7 +105,7 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
                                                     </div>
 
                                                     {/* Item Subtotal Price */}
-                                                    <span className="text-sm font-bold text-eloria-purple">₹{(item.price * (item.quantity || 1)).toLocaleString()}</span>
+                                                    <span className="text-sm font-bold text-eloria-purple">৳{(item.price * (item.quantity || 1)).toLocaleString()}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -131,7 +138,7 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
                                 <div className="space-y-3 mb-6">
                                     <div className="flex justify-between items-center text-gray-500">
                                         <span className="text-[10px] font-bold uppercase tracking-widest">Subtotal</span>
-                                        <span className="text-sm font-bold text-eloria-dark">₹{subtotal.toLocaleString()}.00</span>
+                                        <span className="text-sm font-bold text-eloria-dark">৳{subtotal.toLocaleString()}.00</span>
                                     </div>
                                     <div className="flex justify-between items-center text-gray-500">
                                         <span className="text-[10px] font-bold uppercase tracking-widest">Shipping</span>
@@ -140,7 +147,7 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
                                     <div className="h-px bg-gray-200 my-2"></div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-xs font-bold uppercase tracking-[0.2em] text-eloria-dark">Estimated Total</span>
-                                        <span className="text-xl font-bold text-eloria-purple font-sans">₹{subtotal.toLocaleString()}.00</span>
+                                        <span className="text-xl font-bold text-eloria-purple font-sans">৳{subtotal.toLocaleString()}.00</span>
                                     </div>
                                 </div>
 

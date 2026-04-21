@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
+import { API_URL } from '../config';
 
 export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -29,7 +30,6 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
     setIsLoading(true);
     setError('');
 
-    const API_URL = 'https://eloriabd.vercel.app';
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
 
     try {

@@ -8,7 +8,7 @@ export default function TrustBar() {
     const items = [
         {
             icon: <Truck className="w-5 h-5 text-eloria-purple" />,
-            text: "Free Shipping on Orders Over ₹999"
+            text: "Free Shipping on Orders Over ৳999"
         },
         {
             icon: <RotateCcw className="w-5 h-5 text-eloria-purple" />,
