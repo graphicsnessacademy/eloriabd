@@ -71,13 +71,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
-            {!loading ? children : (
-                <div className="h-screen flex items-center justify-center font-serif text-xl animate-pulse text-[#534AB7]">
-                    Initializing Session...
-                </div>
-            )}
-        </AuthContext.Provider>
+       <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
+        {children} 
+    </AuthContext.Provider>
     );
 };
 

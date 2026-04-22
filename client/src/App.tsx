@@ -27,9 +27,14 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center font-serif text-eloria-purple text-xl animate-pulse">
-        ELORIA...
-      </div>
+       <div className="h-screen flex flex-col items-center justify-center bg-white">
+            <div className="mb-4">
+                <h1 className="text-4xl font-serif tracking-[0.3em] animate-pulse text-gray-900">ELORIA</h1>
+            </div>
+            <div className="w-48 h-[1px] bg-gray-100 relative overflow-hidden">
+                <div className="absolute inset-0 bg-[#534AB7] animate-loading-bar"></div>
+            </div>
+        </div>
     );
   }
 
