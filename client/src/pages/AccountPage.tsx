@@ -11,11 +11,11 @@ import { API_URL } from '../config';
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
-type Tab = 'dashboard' | 'orders' | 'address' | 'cart' | 'wishlist';
+export type Tab = 'dashboard' | 'orders' | 'address' | 'cart' | 'wishlist';
 
-interface Address {
+export interface Address {
     id: string;
-    label: 'Home' | 'Office';
+    label: 'Home' | 'Office' | string;
     recipientName: string;
     contact: string;
     country: string;
@@ -24,6 +24,27 @@ interface Address {
     postCode: string;
     address: string;
     isDefault?: boolean;
+}
+
+export interface UserProfile {
+    _id?: string;
+    id?: string;
+    name: string;
+    email: string;
+    phone: string;
+    addresses: Address[];
+    wishlist: string[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    cart: any[];
+}
+
+export interface ProductItem {
+    _id?: string;
+    id?: string;
+    name: string;
+    price: number;
+    image: string;
+    [key: string]: any;
 }
 
 // ─────────────────────────────────────────────
@@ -54,8 +75,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 // ─────────────────────────────────────────────
 // TAB: Dashboard
 // ─────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function DashboardTab({ user, onTabChange }: { user: any; onTabChange: (t: Tab) => void }) {
+function DashboardTab({ user, onTabChange }: { user: UserProfile | null; onTabChange: (t: Tab) => void }) {
     const { cart, wishlist, logout, updateUserProfile } = useStore();
     const navigate = useNavigate();
 
@@ -84,7 +104,7 @@ function DashboardTab({ user, onTabChange }: { user: any; onTabChange: (t: Tab) 
             }
         };
         fetchOrderCount();
-    }, [user]);
+    }, [user?._id, user?.id]);
 
     const stats = [
         { label: 'Cart Items', value: cart.length, tab: 'cart' as Tab, icon: ShoppingCart, color: 'bg-[#f0eeff] text-[#534AB7]' },
@@ -580,11 +600,9 @@ function CartTab() {
 // ─────────────────────────────────────────────
 // TAB: Wishlist
 // ─────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function WishlistTab({ products }: { products: any[] }) {
+function WishlistTab({ products }: { products: ProductItem[] }) {
     const { wishlist, toggleWishlist, addToCart } = useStore();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const wishlisted = products.filter((p: any) => wishlist.includes(p._id?.toString() || p.id?.toString()));
+    const wishlisted = products.filter(p => wishlist.includes(p._id?.toString() || p.id?.toString() || ''));
 
     if (wishlisted.length === 0) {
         return (
@@ -663,8 +681,7 @@ function WishlistTab({ products }: { products: any[] }) {
 // ─────────────────────────────────────────────
 // TAB: Orders
 // ─────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function OrdersTab({ user }: { user: any }) {
+function OrdersTab({ user }: { user: UserProfile | null }) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -690,7 +707,7 @@ function OrdersTab({ user }: { user: any }) {
             }
         };
         fetchOrders();
-    }, [user]);
+    }, [user?._id, user?.id]);
 
     if (loading) {
         return <div className="py-20 text-center"><p className="text-xs text-gray-400 font-bold uppercase tracking-widest animate-pulse">Loading orders...</p></div>;
@@ -799,8 +816,7 @@ function OrdersTab({ user }: { user: any }) {
 // Main AccountPage
 // ─────────────────────────────────────────────
 interface AccountPageProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    products?: any[];
+    products?: ProductItem[];
 }
 
 export default function AccountPage({ products = [] }: AccountPageProps) {
@@ -810,16 +826,10 @@ export default function AccountPage({ products = [] }: AccountPageProps) {
 
     // 1. Strict Account Access Route Guard
     useEffect(() => {
-        const verifyAccess = () => {
-             if (!user && !localStorage.getItem('eloria_token')) {
-                 navigate('/');
-                 setIsAuthOpen(true);
-             }
-        };
-        verifyAccess();
-        const timer = setInterval(verifyAccess, 500); // Guard check while evaluating promises
-        if (user) clearInterval(timer);
-        return () => clearInterval(timer);
+        if (!user && !localStorage.getItem('eloria_token')) {
+            navigate('/');
+            setIsAuthOpen(true);
+        }
     }, [user, navigate, setIsAuthOpen]);
 
     if (!user) return <div className="min-h-screen bg-[#fafafa]" />; // Clean empty fallback while protected
@@ -917,7 +927,6 @@ export default function AccountPage({ products = [] }: AccountPageProps) {
 // ─────────────────────────────────────────────
 // Inline WishlistPage (reused inside AccountPage)
 // ─────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function WishlistPage({ products }: { products: any[] }) {
+function WishlistPage({ products }: { products: ProductItem[] }) {
     return <WishlistTab products={products} />;
 }

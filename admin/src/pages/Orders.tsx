@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/axios';
-import { Search, Eye, Hash, SlidersHorizontal, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Hash, SlidersHorizontal, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 
 const TABS = ['All', 'Pending', 'Confirmed', 'Packaged', 'On Courier', 'Delivered', 'Cancelled'];

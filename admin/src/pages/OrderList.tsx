@@ -7,10 +7,7 @@ import {
   ChevronLeft, 
   ChevronRight, 
   SlidersHorizontal,
-  Hash,
-  Package,
-  CreditCard,
-  Filter
+  Package
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 

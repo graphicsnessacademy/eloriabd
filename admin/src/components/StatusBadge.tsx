@@ -1,4 +1,3 @@
-import React from 'react';
 
 export const statusColors: Record<string, string> = {
     'Pending': 'bg-yellow-50 text-yellow-600 border-yellow-100',

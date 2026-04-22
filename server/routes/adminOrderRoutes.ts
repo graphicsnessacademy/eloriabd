@@ -10,7 +10,7 @@ router.get('/', adminAuth(['editor', 'super_admin']), async (req: Request, res: 
     try {
         const { status, startDate, endDate, search, page = 1, limit = 20 } = req.query;
 
-        // FIX: Define query as 'any' to avoid "Property does not exist" errors
+        // Define query as 'any' to avoid "Property does not exist" errors in TS
         const query: any = {};
 
         // Status Filter
@@ -78,7 +78,7 @@ router.patch('/bulk-status', adminAuth(['editor', 'super_admin']), async (req: R
     }
 });
 
-// GET single order details
+// @route   GET /api/admin/orders/:id
 router.get('/:id', adminAuth(['editor', 'super_admin']), async (req: Request, res: Response) => {
     try {
         const order = await Order.findById(req.params.id).populate('items.productId') as IOrder | null;
@@ -89,7 +89,8 @@ router.get('/:id', adminAuth(['editor', 'super_admin']), async (req: Request, re
     }
 });
 
-// PATCH update status + Email Trigger
+// @route   PATCH /api/admin/orders/:id/status
+// @desc    Update status + Trigger Transactional Emails (including Review Invitations)
 router.patch('/:id/status', adminAuth(['editor', 'super_admin']), async (req: Request, res: Response) => {
     const { status, note } = req.body;
     try {
@@ -99,10 +100,12 @@ router.patch('/:id/status', adminAuth(['editor', 'super_admin']), async (req: Re
         const oldStatus = order.status;
         order.status = status;
 
+        // Ensure timeline exists
         if (!order.timeline || !Array.isArray(order.timeline)) {
             (order as any).timeline = [];
         }
 
+        // Add the new status to the timeline
         order.timeline.push({ 
             status, 
             note: note || `Status updated to ${status}`, 
@@ -111,16 +114,16 @@ router.patch('/:id/status', adminAuth(['editor', 'super_admin']), async (req: Re
         
         await order.save();
 
-        // Non-blocking Email Trigger
+        // ─── EMAIL TRIGGERS (Sprint 3.3 & 5.1) ───
         if (status !== oldStatus && order.customer?.email) {
             (async () => {
                 try {
-                    const last8 = order._id.toString().slice(-8);
+                    const orderRef = order.orderNumber || order._id.toString().slice(-8);
                     const email = order.customer.email;
                     
                     switch (status) {
                         case 'Confirmed':
-                            await sendEmail(email, `আপনার অর্ডার confirmed হয়েছে! ✓ Order #${last8}`, 'OrderConfirmed', order);
+                            await sendEmail(email, `আপনার অর্ডার confirmed হয়েছে! ✓ Order #${orderRef}`, 'OrderConfirmed', order);
                             break;
                         case 'Packaged':
                             await sendEmail(email, `আপনার অর্ডার pack হয়েছে — Dispatching soon`, 'OrderPackaged', order);
@@ -129,10 +132,19 @@ router.patch('/:id/status', adminAuth(['editor', 'super_admin']), async (req: Re
                             await sendEmail(email, `আপনার অর্ডার courier-এ আছে`, 'OrderOnCourier', order);
                             break;
                         case 'Delivered':
-                            await sendEmail(email, `অর্ডার delivered! Review দিন এবং ১০% ছাড় পান`, 'OrderDelivered', order);
+                            // Sprint 5.1: Review Invitation Trigger
+                            await sendEmail(
+                                email, 
+                                `আপনার অর্ডার পৌঁছেছে! আপনার অভিজ্ঞতা শেয়ার করুন ✨`, 
+                                'OrderDelivered', 
+                                {
+                                    order,
+                                    reviewLink: `https://eloriabd-shop.vercel.app/account` // Link to user dashboard
+                                }
+                            );
                             break;
                         case 'Cancelled':
-                            await sendEmail(email, `অর্ডার cancel হয়েছে — Order #${last8}`, 'OrderCancelled', order);
+                            await sendEmail(email, `অর্ডার cancel হয়েছে — Order #${orderRef}`, 'OrderCancelled', order);
                             break;
                         case 'Returned':
                             await sendEmail(email, `Return request পেয়েছি — আমরা review করছি`, 'ReturnInitiated', order);
@@ -146,11 +158,12 @@ router.patch('/:id/status', adminAuth(['editor', 'super_admin']), async (req: Re
 
         res.json({ message: "Status updated successfully", order });
     } catch (err: any) {
+        console.error("PATCH ERROR:", err);
         res.status(500).json({ message: err.message });
     }
 });
 
-// POST add internal note
+// @route   POST /api/admin/orders/:id/notes
 router.post('/:id/notes', adminAuth(['editor', 'super_admin']), async (req: Request, res: Response) => {
     try {
         const order = await Order.findByIdAndUpdate(
@@ -164,7 +177,7 @@ router.post('/:id/notes', adminAuth(['editor', 'super_admin']), async (req: Requ
     }
 });
 
-// PATCH update courier info
+// @route   PATCH /api/admin/orders/:id/courier
 router.patch('/:id/courier', adminAuth(['editor', 'super_admin']), async (req: Request, res: Response) => {
     try {
         const { courierName, trackingNumber } = req.body;

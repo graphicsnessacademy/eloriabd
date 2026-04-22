@@ -10,6 +10,7 @@ import adminConfigRoutes from './routes/adminConfigRoutes';
 import productRoutes     from './routes/productRoutes';
 import adminCouponRoutes from './routes/adminCouponRoutes';
 import couponRoutes      from './routes/couponRoutes';
+import reviewRoutes from './routes/reviewRoutes';
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ const hybridCheckoutRoute = require('./routes/hybridCheckoutRoute');
 const adminRoutes         = require('./routes/adminRoutes');
 const uploadRoutes        = require('./routes/uploadRoutes');
 
+
 app.use('/api/products',        productRoutes);
 app.use('/api/auth',            authRoutes);
 app.use('/api/user',            userRoutes);
@@ -56,8 +58,10 @@ app.use('/api/orders',          orderRoutes);
 app.use('/api/hybrid-checkout', hybridCheckoutRoute);
 app.use('/api/upload',          uploadRoutes);
 app.use('/api/admin/orders',    adminOrderRoutes);
+
 app.use('/api/admin/coupons',   adminCouponRoutes);
 app.use('/api/coupons',         couponRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // ── CRITICAL ORDER ──────────────────────────────────────────────────────────
 // /api/admin/config MUST be registered BEFORE /api/admin
@@ -68,7 +72,7 @@ app.use('/api/admin/config',    adminConfigRoutes); // <-- BEFORE /api/admin
 app.use('/api/admin',           adminRoutes);       // <-- AFTER
 // ────────────────────────────────────────────────────────────────────────────
 
-app.get('/', (_req: Request, res: Response) => res.send('ELORIA API IS LIVE (TS MODE)'));
+app.get('/', (_req: Request, res: Response) => res.send('ELORIA API V2 - REVIEWS ACTIVE'));
 
 export default app;
 
