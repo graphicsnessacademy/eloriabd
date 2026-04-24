@@ -4,6 +4,7 @@ import Review from '../models/Review';
 import Order from '../models/Order';
 import auth from '../middleware/authMiddleware';
 import adminAuth from '../middleware/adminAuth';
+import { createNotification } from '../utils/createNotification';
 
 const router = express.Router();
 
@@ -83,6 +84,19 @@ router.post('/', auth, async (req: any, res: Response) => {
         });
 
         await newReview.save();
+
+        // Trigger Admin Notification
+        try {
+            await createNotification(
+                'new_review',
+                `New ${rating}-star review pending approval`,
+                `/admin/products/${productId}/edit`, // Basic link, ideally you'd link to a reviews tab if it existed
+                {}
+            );
+        } catch (err) {
+            console.error('Failed to trigger notification:', err);
+        }
+
         res.status(201).json({ message: "Review submitted for moderation!", review: newReview });
     } catch (err: any) {
         res.status(500).json({ error: err.message });

@@ -106,11 +106,16 @@ router.get('/products', adminAuth(), async (req, res) => {
     try {
         const { search = '', category = '', subcategory = '', sort = 'date_desc', page = 1, limit = 20 } = req.query;
         
-        // Exclude soft-deleted products by default
-        let query = { isDeleted: { $ne: true } };
+        // Always exclude soft-deleted products
+        const query = { isDeleted: { $ne: true } };
         
         if (search) {
-            query.name = { $regex: search, $options: 'i' };
+            // Fuzzy search across name AND category for RelatedProductSelector support
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { category: { $regex: search, $options: 'i' } },
+                { subcategory: { $regex: search, $options: 'i' } }
+            ];
         }
         if (category && category !== 'All') {
             query.category = category;
@@ -145,6 +150,34 @@ router.get('/products', adminAuth(), async (req, res) => {
     }
 });
 
+// @route   GET /api/admin/sync-products
+// @desc    Maintenance: Sync all products to current schema (recalc stock, init missing fields)
+router.get('/sync-products', adminAuth(['super_admin']), async (req, res) => {
+    try {
+        const products = await Product.find({});
+        let count = 0;
+        for (const product of products) {
+            // Initializing missing fields if they don't exist
+            if (!product.tags) product.tags = [];
+            if (product.metaTitle === undefined) product.metaTitle = '';
+            if (product.metaDescription === undefined) product.metaDescription = '';
+            if (product.metaKeywords === undefined) product.metaKeywords = '';
+            
+            // Trigger pre-save hook for stock recalc and field normalization
+            await product.save();
+            count++;
+        }
+        res.json({ 
+            success: true, 
+            message: `Successfully synchronized ${count} products.`,
+            details: "All products now have valid stock counts, inStock flags, and SEO metadata containers."
+        });
+    } catch (err) {
+        console.error('Sync error:', err);
+        res.status(500).json({ message: 'Sync failed', error: err.message });
+    }
+});
+
 // GET /api/admin/products/:id
 router.get('/products/:id', adminAuth(), async (req, res) => {
     try {
@@ -169,6 +202,16 @@ router.post('/products', adminAuth(['super_admin', 'editor']), [
     }
 
     try {
+        // Sanitize relatedProducts — must always be a clean array of ObjectId strings
+        if (!Array.isArray(req.body.relatedProducts)) {
+            req.body.relatedProducts = [];
+        } else {
+            // Strip any populated objects back to IDs
+            req.body.relatedProducts = req.body.relatedProducts
+                .map(rp => (typeof rp === 'object' && rp !== null) ? String(rp._id || rp) : String(rp))
+                .filter(id => id && id.length === 24); // valid ObjectId length
+        }
+
         const product = new Product(req.body);
         // let pre('save') compute inStock automatically
         await product.save();
@@ -188,6 +231,15 @@ router.patch('/products/:id', adminAuth(['super_admin', 'editor']), async (req, 
         const oldPrice = product.price;
         // manually calculate old stock in case inStock is unreliable or wasn't recalculated yet
         const oldTotalStock = product.variants ? product.variants.reduce((acc, v) => acc + (v.stock || 0), 0) : 0;
+
+        // Sanitize relatedProducts — must always be a clean array of ObjectId strings
+        if (!Array.isArray(req.body.relatedProducts)) {
+            req.body.relatedProducts = [];
+        } else {
+            req.body.relatedProducts = req.body.relatedProducts
+                .map(rp => (typeof rp === 'object' && rp !== null) ? String(rp._id || rp) : String(rp))
+                .filter(id => id && id.length === 24);
+        }
 
         Object.assign(product, req.body);
         

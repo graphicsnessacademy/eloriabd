@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../api/axios';
+import { mergeUser } from '../utils/tracker';
 
 // Define the User shape based on our Eloria MongoDB Schema
 interface User {
@@ -39,6 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // The axios interceptor we built will automatically attach the token
                 const res = await api.get('/api/user/profile');
                 setUser(res.data);
+                mergeUser(res.data._id);
             } catch (err) {
                 console.error("Auth session expired or invalid");
                 localStorage.removeItem('eloria_token');
@@ -55,6 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = (token: string, userData: User) => {
         localStorage.setItem('eloria_token', token);
         setUser(userData);
+        mergeUser(userData._id);
     };
 
     // 3. LOGOUT: Clear everything
@@ -71,9 +74,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-       <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
-        {children} 
-    </AuthContext.Provider>
+        <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
+            {children}
+        </AuthContext.Provider>
     );
 };
 

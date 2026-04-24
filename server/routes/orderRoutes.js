@@ -7,10 +7,17 @@ const _OrderModule = require('../models/Order');
 const Order = _OrderModule.default || _OrderModule;
 
 const User = require('../models/User');
-const auth = require('../middleware/authMiddleware');
+const _authModule = require('../middleware/authMiddleware');
+const auth = _authModule.default || _authModule;
 
 const _CouponModule = require('../models/Coupon');
 const Coupon = _CouponModule.default || _CouponModule;
+
+const { createNotification } = require('../utils/createNotification');
+const { sendPushNotification } = require('../services/pushNotificationService');
+
+const _ProductModule = require('../models/Product');
+const Product = _ProductModule.default || _ProductModule;
 
 /**
  * @route   POST /api/orders
@@ -77,10 +84,33 @@ router.post('/', auth, async (req, res) => {
         // 6. Save the order (This triggers the EL-XXXX serial generation)
         const savedOrder = await newOrder.save();
 
-        // 7. WIPE the user's cart in the database
+        // 7. DECREMENT STOCK (SKU Matrix Level)
+        try {
+            for (const item of sanitizedItems) {
+                if (!item.productId) continue;
+                
+                const product = await Product.findById(item.productId);
+                if (product && product.variants) {
+                    const vIndex = product.variants.findIndex(v => 
+                        v.color === item.color && v.size === item.size
+                    );
+                    
+                    if (vIndex !== -1) {
+                        product.variants[vIndex].stock -= item.quantity;
+                        // pre-save hook will handle totalStock and inStock updates
+                        await product.save();
+                    }
+                }
+            }
+        } catch (stockErr) {
+            console.error("Critical: Stock reduction failed during order placement:", stockErr.message);
+            // We don't block the order response, but this should be logged for manual audit
+        }
+
+        // 8. WIPE the user's cart in the database
         await User.findByIdAndUpdate(req.user.id, { cart: [] });
 
-        // 8. Handle Coupon Usage Tracking
+        // 9. Handle Coupon Usage Tracking
         if (couponCode) {
             try {
                 await Coupon.findOneAndUpdate(
@@ -96,7 +126,25 @@ router.post('/', auth, async (req, res) => {
             }
         }
 
-        // 9. Success Response
+        // 9. Trigger Admin Notification
+        try {
+            await createNotification(
+                'new_order',
+                `New order placed by ${newOrder.customer.name}`,
+                `/admin/orders/${savedOrder._id}`,
+                { orderNumber: savedOrder.orderNumber, total: savedOrder.total }
+            );
+
+            await sendPushNotification({
+                title: '🛍️ New Order Received',
+                body: `${newOrder.customer.name} placed an order for ৳${savedOrder.total}`,
+                url: `/admin/orders/${savedOrder._id}`
+            });
+        } catch (err) {
+            console.error('Failed to trigger notification:', err);
+        }
+
+        // 10. Success Response
         res.status(201).json(savedOrder);
 
     } catch (err) {

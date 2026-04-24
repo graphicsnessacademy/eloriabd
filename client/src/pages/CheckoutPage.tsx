@@ -12,6 +12,8 @@ import {
     RefreshCw, AlertCircle, ArrowLeft, Tag
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
+import { useSiteConfig } from '../context/SiteConfigContext';
+import { districts } from '../utils/districts';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const inputCls = 'w-full border border-gray-200 rounded-sm px-3 py-2.5 text-xs text-gray-800 placeholder-gray-300 focus:outline-none focus:border-[#534AB7] transition-colors bg-white font-sans';
@@ -27,6 +29,7 @@ type Step = 'checkout' | 'otp' | 'success';
 
 export default function CheckoutPage() {
     const { user, cart, clearCart, setIsAuthOpen, updateUserProfile, loginSync } = useStore();
+    const { config } = useSiteConfig();
     const navigate = useNavigate();
 
     const [step, setStep] = useState<Step>('checkout');
@@ -70,9 +73,33 @@ export default function CheckoutPage() {
     } | null>(null);
     const [couponError, setCouponError] = useState('');
 
+    const [shippingCost, setShippingCost] = useState(150);
+    const [shippingDays, setShippingDays] = useState('5-7 days');
+
+    const fetchShippingRate = async (district: string) => {
+        if (!district) return;
+        try {
+            const res = await fetch(`${API_URL}/api/shipping/rate?district=${encodeURIComponent(district)}`);
+            const data = await res.json();
+            if (res.ok) {
+                setShippingCost(data.rate);
+                setShippingDays(data.estimatedDays);
+            }
+        } catch (error) {
+            console.error('Error fetching shipping rate', error);
+        }
+    };
+
+    useEffect(() => {
+        if (user && selectedAddressIndex !== null && user.addresses?.[selectedAddressIndex]) {
+            fetchShippingRate(user.addresses[selectedAddressIndex].district);
+        }
+    }, [selectedAddressIndex, user]);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const subtotal = cart.reduce((s: number, i: any) => s + i.price * (i.quantity || 1), 0);
-    const shipping = subtotal > 999 ? 0 : 60;
+    const freeShippingThreshold = config?.freeShippingThreshold || 999;
+    const shipping = subtotal > freeShippingThreshold ? 0 : shippingCost;
     const discount = appliedCoupon?.discountAmount ?? 0;
     const total = subtotal + shipping - discount;
 
@@ -384,7 +411,13 @@ export default function CheckoutPage() {
                                                     <div className="grid grid-cols-2 gap-3">
                                                         <div><label className={labelCls}>প্রাপকের নাম *</label><input className={inputCls} placeholder="আপনার পূর্ণ নাম" value={addrForm.recipientName} onChange={e => setAddrForm(f => ({ ...f, recipientName: e.target.value }))} /></div>
                                                         <div><label className={labelCls}>মোবাইল নম্বর *</label><input className={inputCls} placeholder="01XXXXXXXXX" value={addrForm.contact} onChange={e => setAddrForm(f => ({ ...f, contact: e.target.value }))} /></div>
-                                                        <div><label className={labelCls}>জেলা / শহর *</label><input className={inputCls} placeholder="যেমন: ঢাকা" value={addrForm.district} onChange={e => setAddrForm(f => ({ ...f, district: e.target.value }))} /></div>
+                                                        <div>
+                                                            <label className={labelCls}>জেলা / শহর *</label>
+                                                            <select className={inputCls} value={addrForm.district} onChange={e => { setAddrForm(f => ({ ...f, district: e.target.value })); fetchShippingRate(e.target.value); }}>
+                                                                <option value="">জেলা নির্বাচন করুন</option>
+                                                                {districts.map(d => <option key={d.en} value={d.bn}>{d.bn}</option>)}
+                                                            </select>
+                                                        </div>
                                                         <div><label className={labelCls}>এলাকা / থানা *</label><input className={inputCls} placeholder="যেমন: গুলশান" value={addrForm.area} onChange={e => setAddrForm(f => ({ ...f, area: e.target.value }))} /></div>
                                                     </div>
                                                     <div><label className={labelCls}>বিস্তারিত ঠিকানা *</label><textarea className={`${inputCls} resize-none`} rows={2} placeholder="বাড়ি / ভবন / ল্যান্ডমার্ক" value={addrForm.address} onChange={e => setAddrForm(f => ({ ...f, address: e.target.value }))} /></div>
@@ -450,7 +483,13 @@ export default function CheckoutPage() {
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div><label className={labelCls}>জেলা / শহর *</label><input className={inputCls} placeholder="যেমন: ঢাকা" value={guestForm.district} onChange={e => { setGuestForm(f => ({...f, district: e.target.value})); setGuestError(''); }} /></div>
+                                        <div>
+                                            <label className={labelCls}>জেলা / শহর *</label>
+                                            <select className={inputCls} value={guestForm.district} onChange={e => { setGuestForm(f => ({...f, district: e.target.value})); setGuestError(''); fetchShippingRate(e.target.value); }}>
+                                                <option value="">জেলা নির্বাচন করুন</option>
+                                                {districts.map(d => <option key={d.en} value={d.bn}>{d.bn}</option>)}
+                                            </select>
+                                        </div>
                                         <div><label className={labelCls}>এলাকা / থানা *</label><input className={inputCls} placeholder="যেমন: মিরপুর" value={guestForm.area} onChange={e => { setGuestForm(f => ({...f, area: e.target.value})); setGuestError(''); }} /></div>
                                         <div className="sm:col-span-2"><label className={labelCls}>বিস্তারিত ঠিকানা *</label><textarea className={`${inputCls} resize-none`} rows={3} placeholder="বাড়ি নং / রোড / ভবন / ফ্লোর / ল্যান্ডমার্ক…" value={guestForm.addressDetail} onChange={e => { setGuestForm(f => ({...f, addressDetail: e.target.value})); setGuestError(''); }} /></div>
                                     </div>
@@ -552,7 +591,8 @@ export default function CheckoutPage() {
                                     <span>শিপিং</span>
                                     <span className="font-bold text-green-600">{shipping === 0 ? 'ফ্রি' : `৳${shipping}`}</span>
                                 </div>
-                                {shipping > 0 && <p className="text-[10px] text-gray-400">৳৯৯৯-এর বেশি অর্ডারে ফ্রি শিপিং</p>}
+                                {shipping > 0 && <p className="text-[10px] text-gray-400">৳{freeShippingThreshold.toLocaleString()}-এর বেশি অর্ডারে ফ্রি শিপিং</p>}
+                                <p className="text-[10px] text-[#534AB7] mt-0.5">ডেলিভারি সময়: {shippingDays}</p>
                                 {appliedCoupon && (
                                     <div className="flex justify-between text-xs text-green-600">
                                         <span className="flex items-center gap-1"><Tag className="w-3 h-3" /> ছাড় ({appliedCoupon.code})</span>

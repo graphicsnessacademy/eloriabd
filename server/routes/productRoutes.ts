@@ -8,7 +8,13 @@ const router = express.Router();
 router.get('/', async (req: Request, res: Response) => {
   try {
     // Only return products that are not deleted
-    const products = await Product.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 });
+    const products = await Product.find({ isDeleted: { $ne: true } })
+      .populate({
+        path: 'relatedProducts',
+        match: { isDeleted: false },
+        select: 'name price images category isNewProduct'
+      })
+      .sort({ createdAt: -1 });
     res.json(products);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
@@ -19,7 +25,11 @@ router.get('/', async (req: Request, res: Response) => {
 // @desc    Get single product by ID
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id).populate({
+      path: 'relatedProducts',
+      match: { isDeleted: false },
+      select: 'name price images category isNewProduct'
+    });
     if (!product) return res.status(404).json({ message: 'Product not found' });
     res.json(product);
   } catch (err: any) {

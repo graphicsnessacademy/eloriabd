@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/authMiddleware');
+const _authModule = require('../middleware/authMiddleware');
+const auth = _authModule.default || _authModule;
 const User = require('../models/User');
 
 // GET /api/user/profile - Fetch profile details

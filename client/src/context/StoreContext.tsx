@@ -3,6 +3,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { API_URL } from '../config';
+import { trackEvent } from '../utils/tracker';
 
 const StoreContext = createContext<any>(null);
 
@@ -45,7 +46,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             return res.json();
           })
           .then(userData => {
-          setUser(userData);
+            setUser(userData);
             if (userData.wishlist) setWishlist(userData.wishlist);
             if (userData.cart) setCart(normalizeCart(userData.cart));
           })
@@ -87,11 +88,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [wishlist, cart, user, isInitialDbLoaded]);
 
   const toggleWishlist = (productId: string) => {
-    setWishlist((prev) =>
-      prev.includes(productId)
+    setWishlist((prev) => {
+      const isRemoving = prev.includes(productId);
+      if (!isRemoving) trackEvent('add_to_wishlist', { productId });
+      return isRemoving
         ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
-    );
+        : [...prev, productId];
+    });
   };
 
   const removeFromWishlist = (productId: string) => {
@@ -120,6 +123,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
 
       return [...prev, { ...product, quantity: product.quantity || 1, size: selectedSize, color: selectedColor }];
+    });
+
+    trackEvent('add_to_cart', {
+      productId: product._id || product.id,
+      size: product.size || 'Standard',
+      color: product.color || 'Default',
+      quantity: product.quantity || 1
     });
 
     setIsCartOpen(true);
@@ -153,14 +163,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
    * Caller must pass the react-router navigate function.
    */
   const orderNow = (product: any, navigateFn: (path: string) => void) => {
-    const productId    = product._id || product.id;
-    const selectedSize  = product.size  || 'Standard';
+    const productId = product._id || product.id;
+    const selectedSize = product.size || 'Standard';
     const selectedColor = product.color || 'Default';
 
     setCart((prev) => {
       const existingIdx = prev.findIndex((item: any) =>
         (item._id || item.id) === productId &&
-        item.size  === selectedSize &&
+        item.size === selectedSize &&
         item.color === selectedColor
       );
       if (existingIdx !== -1) {
@@ -172,6 +182,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         return updated;
       }
       return [...prev, { ...product, quantity: product.quantity || 1, size: selectedSize, color: selectedColor }];
+    });
+
+    trackEvent('add_to_cart', {
+      productId: product._id || product.id,
+      size: selectedSize,
+      color: selectedColor,
+      quantity: product.quantity || 1
     });
 
     navigateFn('/checkout');

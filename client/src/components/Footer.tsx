@@ -58,10 +58,11 @@ export default function Footer() {
                     <div>
                         <h4 className="text-eloria-lavender font-bold text-xs uppercase tracking-[0.2em] mb-8">Customer Care</h4>
                         <ul className="space-y-4 text-white/70 text-sm">
-                            <li><a href="#" className="hover:text-eloria-pink transition-colors">Shipping Policy</a></li>
-                            <li><a href="#" className="hover:text-eloria-pink transition-colors">Returns & Exchanges</a></li>
-                            <li><a href="#" className="hover:text-eloria-pink transition-colors">Size Guide</a></li>
-                            <li><a href="#" className="hover:text-eloria-pink transition-colors">Contact Us</a></li>
+                            <li><Link to="/pages/about-us" className="hover:text-eloria-pink transition-colors">About Us</Link></li>
+                            <li><Link to="/pages/return-policy" className="hover:text-eloria-pink transition-colors">Returns & Exchanges</Link></li>
+                            <li><Link to="/pages/privacy-policy" className="hover:text-eloria-pink transition-colors">Privacy Policy</Link></li>
+                            <li><Link to="/pages/faq" className="hover:text-eloria-pink transition-colors">FAQs</Link></li>
+                            <li><Link to="/pages/size-guide" className="hover:text-eloria-pink transition-colors">Size Guide</Link></li>
                         </ul>
                     </div>
 

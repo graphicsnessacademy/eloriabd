@@ -4,13 +4,25 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 
-import adminOrderRoutes  from './routes/adminOrderRoutes';
-import configRoutes      from './routes/configRoutes';
+import adminOrderRoutes from './routes/adminOrderRoutes';
+import configRoutes from './routes/configRoutes';
 import adminConfigRoutes from './routes/adminConfigRoutes';
-import productRoutes     from './routes/productRoutes';
+import productRoutes from './routes/productRoutes';
 import adminCouponRoutes from './routes/adminCouponRoutes';
-import couponRoutes      from './routes/couponRoutes';
+import couponRoutes from './routes/couponRoutes';
 import reviewRoutes from './routes/reviewRoutes';
+import eventRoutes from './routes/eventRoutes';
+import { pageViewMiddleware } from './middleware/pageViewMiddleware';
+import adminAnalyticsRoutes from './routes/adminAnalyticsRoutes';
+import adminUserRoutes from './routes/adminUserRoutes';
+import adminNotificationRoutes from './routes/adminNotificationRoutes';
+import contentPageRoutes from './routes/contentPageRoutes';
+import adminShippingRoutes from './routes/adminShippingRoutes';
+import shippingRoutes from './routes/shippingRoutes';
+import adminPushRoutes from './routes/adminPushRoutes';
+import adminExportRoutes from './routes/adminExportRoutes';
+import { initAnalyticsCron } from './jobs/analyticsCron';
+import { seedPages } from './utils/seedPages';
 
 dotenv.config();
 
@@ -35,6 +47,7 @@ const connectDB = async () => {
   if (cachedDb) return cachedDb;
   const db = await mongoose.connect(process.env.MONGODB_URI!, { serverSelectionTimeoutMS: 5000 });
   cachedDb = db;
+  await seedPages(); // Seed default content pages once connected
   return db;
 };
 
@@ -43,36 +56,48 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
   catch (err: any) { res.status(500).json({ error: "Database connection failed", details: err.message }); }
 });
 
-const authRoutes          = require('./routes/authRoutes');
-const userRoutes          = require('./routes/userRoutes');
-const orderRoutes         = require('./routes/orderRoutes');
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 const hybridCheckoutRoute = require('./routes/hybridCheckoutRoute');
-const adminRoutes         = require('./routes/adminRoutes');
-const uploadRoutes        = require('./routes/uploadRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
+app.use(pageViewMiddleware);
 
-app.use('/api/products',        productRoutes);
-app.use('/api/auth',            authRoutes);
-app.use('/api/user',            userRoutes);
-app.use('/api/orders',          orderRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/orders', orderRoutes);
 app.use('/api/hybrid-checkout', hybridCheckoutRoute);
-app.use('/api/upload',          uploadRoutes);
-app.use('/api/admin/orders',    adminOrderRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/admin/orders', adminOrderRoutes);
 
-app.use('/api/admin/coupons',   adminCouponRoutes);
-app.use('/api/coupons',         couponRoutes);
+app.use('/api/admin/coupons', adminCouponRoutes);
+app.use('/api/coupons', couponRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/shipping', shippingRoutes);
 
 // ── CRITICAL ORDER ──────────────────────────────────────────────────────────
 // /api/admin/config MUST be registered BEFORE /api/admin
 // Express matches prefixes greedily — /api/admin catches /api/admin/config
 // if it is listed first, and adminRoutes.js never has a /config handler.
-app.use('/api/config',          configRoutes);
-app.use('/api/admin/config',    adminConfigRoutes); // <-- BEFORE /api/admin
-app.use('/api/admin',           adminRoutes);       // <-- AFTER
+app.use('/api/config', configRoutes);
+app.use('/api/admin/config', adminConfigRoutes);
+app.use('/api/admin/analytics', adminAnalyticsRoutes);
+app.use('/api/admin/users', adminUserRoutes);
+app.use('/api/admin/notifications', adminNotificationRoutes);
+app.use('/api/admin/shipping', adminShippingRoutes);
+app.use('/api/admin/push', adminPushRoutes);
+app.use('/api/pages', contentPageRoutes);
+app.use('/api/admin', adminExportRoutes);
+app.use('/api/admin', adminRoutes);
 // ────────────────────────────────────────────────────────────────────────────
 
 app.get('/', (_req: Request, res: Response) => res.send('ELORIA API V2 - REVIEWS ACTIVE'));
+
+initAnalyticsCron();
 
 export default app;
 

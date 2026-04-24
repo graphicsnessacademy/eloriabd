@@ -168,11 +168,11 @@ export default function ProductCard({ product }: { product: Product }) {
                 ) : (
                     <div className="flex items-center justify-center gap-1.5">
                         <span className="font-bold text-[12px] text-black font-sans">
-                            ৳{product.price.toLocaleString()}
+                            ৳{(product.price || 0).toLocaleString()}
                         </span>
                         {isSale && product.originalPrice && (
                             <span className="text-[11px] text-gray-400 line-through">
-                                ৳{product.originalPrice.toLocaleString()}
+                                ৳{(product.originalPrice || 0).toLocaleString()}
                             </span>
                         )}
                     </div>

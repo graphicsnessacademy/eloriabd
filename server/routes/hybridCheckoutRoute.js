@@ -13,6 +13,8 @@ const User = require('../models/User');
 const Order = require('../models/Order').default || require('../models/Order');
 const OtpStore = require('../models/OtpStore');
 const Coupon = require('../models/Coupon').default || require('../models/Coupon');
+const { createNotification } = require('../utils/createNotification');
+const { sendPushNotification } = require('../services/pushNotificationService');
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -95,6 +97,24 @@ const createOrder = async (userId, { cart, shippingAddress, totalAmount, couponC
             { code: couponCode.toUpperCase().trim() },
             { $inc: { usageCount: 1 }, $push: { usedBy: userId } }
         );
+    }
+
+    // Trigger Admin Notification
+    try {
+        await createNotification(
+            'new_order',
+            `New order placed by ${customerInfo.name}`,
+            `/admin/orders/${savedOrder._id}`,
+            { orderNumber: savedOrder.orderNumber, total: savedOrder.total }
+        );
+
+        await sendPushNotification({
+            title: '🛍️ New Order Received',
+            body: `${customerInfo.name} placed an order for ৳${savedOrder.total}`,
+            url: `/admin/orders/${savedOrder._id}`
+        });
+    } catch (err) {
+        console.error('Failed to trigger notification:', err);
     }
 
     return savedOrder;

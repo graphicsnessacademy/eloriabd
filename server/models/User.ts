@@ -1,6 +1,20 @@
-const mongoose = require('mongoose');
+import mongoose, { Document, Schema } from 'mongoose';
 
-const userSchema = new mongoose.Schema({
+export interface IUser extends Document {
+    email: string;
+    password?: string;
+    name: string;
+    phone: string;
+    addresses: any[];
+    wishlist: mongoose.Types.ObjectId[];
+    cart: any[];
+    status: 'active' | 'suspended';
+    lastLogin?: Date;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const userSchema = new Schema<IUser>({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     name: { type: String, default: 'Elora Member' },
@@ -16,16 +30,21 @@ const userSchema = new mongoose.Schema({
         address: { type: String, required: true },
         isDefault: { type: Boolean, default: false }
     }],
-    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+    wishlist: [{ type: Schema.Types.ObjectId, ref: 'Product' }],
     cart: [{
-        productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+        productId: { type: Schema.Types.ObjectId, ref: 'Product' },
         name: { type: String },
         image: { type: String },
         size: { type: String },
         color: { type: String },
         price: { type: Number },
         quantity: { type: Number, default: 1 }
-    }]
+    }],
+    status: { type: String, enum: ['active', 'suspended'], default: 'active' },
+    lastLogin: { type: Date }
 }, { timestamps: true });
 
-module.exports = mongoose.model('User', userSchema);
+export const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema);
+// For backward compatibility with existing JS requires:
+module.exports = mongoose.models.User || mongoose.model('User', userSchema);
+module.exports.User = module.exports;

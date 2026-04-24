@@ -11,6 +11,7 @@ import type { ImageItem } from '../components/ImageUpload';
 import { VariantMatrix } from '../components/VariantMatrix';
 import type { VariantItem } from '../components/VariantMatrix';
 import { CATEGORIES } from '../constants/categories';
+import { RelatedProductSelector } from '../components/RelatedProductSelector';
 
 interface ProductFormData {
   name: string;
@@ -26,7 +27,16 @@ interface ProductFormData {
     metaTitle: string;
     metaDescription: string;
     metaKeywords: string;
-  }
+  };
+  sizeChart: {
+    show: boolean;
+    data: Array<{
+      size: string;
+      chest: string;
+      length: string;
+      sleeve: string;
+    }>;
+  };
 }
 
 export const ProductForm: React.FC = () => {
@@ -43,6 +53,7 @@ export const ProductForm: React.FC = () => {
   const [sizes, setSizes] = useState<string[]>([]);
   const [colors, setColors] = useState<string[]>([]);
   const [variants, setVariants] = useState<VariantItem[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<string[]>([]);
 
   const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<ProductFormData>({
     defaultValues: {
@@ -59,6 +70,10 @@ export const ProductForm: React.FC = () => {
         metaTitle: '',
         metaDescription: '',
         metaKeywords: ''
+      },
+      sizeChart: {
+        show: false,
+        data: [{ size: 'M', chest: '', length: '', sleeve: '' }]
       }
     }
   });
@@ -99,6 +114,15 @@ export const ProductForm: React.FC = () => {
           setValue('seo.metaTitle', p.metaTitle || '');
           setValue('seo.metaDescription', p.metaDescription || '');
           setValue('seo.metaKeywords', p.metaKeywords || '');
+          
+          if (p.sizeChart) {
+            setValue('sizeChart.show', p.sizeChart.show || false);
+            setValue('sizeChart.data', p.sizeChart.data && p.sizeChart.data.length > 0 ? p.sizeChart.data : [{ size: 'M', chest: '', length: '', sleeve: '' }]);
+          } else {
+            // Legacy fallback if data exists in old fields
+            setValue('sizeChart.show', p.showSizeChart || false);
+            setValue('sizeChart.data', p.sizeChartData || [{ size: 'M', chest: '', length: '', sleeve: '' }]);
+          }
 
           if (editor && p.description) {
             editor.commands.setContent(p.description);
@@ -109,9 +133,18 @@ export const ProductForm: React.FC = () => {
             id: img.id || img.publicId || img._id || Math.random().toString()
           }));
           setImages(formattedImages);
-          setSizes(p.sizes || []);
-          setColors(p.colors || []);
-          setVariants(p.variants || []);
+          
+          // --- Inventory Re-hydration ---
+          // Extract unique colors and sizes from the variants matrix saved in the DB
+          const dbVariants = p.variants || [];
+          const extractedColors = Array.from(new Set(dbVariants.map((v: any) => v.color))).filter(Boolean) as string[];
+          const extractedSizes = Array.from(new Set(dbVariants.map((v: any) => v.size))).filter(s => s && s !== 'Free Size') as string[];
+
+          setColors(extractedColors);
+          setSizes(extractedSizes);
+          setVariants(dbVariants);
+
+          setRelatedProducts((p.relatedProducts || []).map((rp: any) => typeof rp === 'object' ? rp._id : rp));
         } catch (error) {
           console.error("Failed to load product", error);
           alert('Failed to load product details');
@@ -128,12 +161,13 @@ export const ProductForm: React.FC = () => {
     setIsSaving(true);
     try {
       const payload = {
-        name: data.name,
+        name: data.name.trim(),
         description: data.description,
         category: data.category,
         subcategory: data.subcategory,
-        price: data.price,
-        originalPrice: data.originalPrice,
+        // Explicit cast to Number to prevent string slipping through react-hook-form
+        price: Number(data.price),
+        originalPrice: Number(data.originalPrice) || 0,
         tags: data.tags,
         isNewProduct: data.isNewProduct,
         isBestSeller: data.isBestSeller,
@@ -141,15 +175,21 @@ export const ProductForm: React.FC = () => {
         metaDescription: data.seo.metaDescription,
         metaKeywords: data.seo.metaKeywords,
         images,
+        // Sizes/colors arrays kept for legacy support
         sizes,
         colors,
-        variants
+        // Variants from the VariantMatrix component
+        variants: variants.map(v => ({
+          color: String(v.color).trim(),
+          size: String(v.size).trim(),
+          stock: Number(v.stock) || 0
+        })),
+        // Related products: always a clean array of ID strings
+        relatedProducts: relatedProducts
+          .filter(id => typeof id === 'string' && id.length > 0)
+          .map(id => (typeof id === 'object' ? (id as any)._id : id)),
+        sizeChart: data.sizeChart
       };
-
-      // clean up payload
-      if (isNaN(payload.originalPrice as number)) {
-         payload.originalPrice = 0;
-      }
 
       if (isEditing) {
         await api.patch(`/api/admin/products/${id}`, payload);
@@ -160,8 +200,18 @@ export const ProductForm: React.FC = () => {
       navigate('/admin/products');
     } catch (error: any) {
       console.error("Failed to save product", error);
-      const serverMsg = error?.response?.data?.message || error?.response?.data?.errors?.[0]?.msg || 'Unknown error';
-      alert(`Failed to save product: ${serverMsg}`);
+      // Surface specific Mongoose/express-validator messages
+      const mongooseErrors = error?.response?.data?.errors;
+      let serverMsg: string;
+      if (mongooseErrors) {
+        // express-validator errors array
+        serverMsg = Array.isArray(mongooseErrors)
+          ? mongooseErrors.map((e: any) => e.msg || e.message).join('\n')
+          : JSON.stringify(mongooseErrors);
+      } else {
+        serverMsg = error?.response?.data?.message || error?.message || 'Unknown server error';
+      }
+      alert(`Save failed:\n${serverMsg}`);
     } finally {
       setIsSaving(false);
     }
@@ -241,6 +291,141 @@ export const ProductForm: React.FC = () => {
               onChangeColors={setColors}
               onVariantsChange={setVariants}
             />
+          </div>
+          
+          {/* Size Chart Management */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-slate-800 font-semibold">Size Chart Management</h3>
+                <p className="text-slate-500 text-sm">Create a dynamic size chart for this specific product</p>
+              </div>
+              <Controller
+                name="sizeChart.show"
+                control={control}
+                render={({ field }) => (
+                  <button
+                    type="button"
+                    onClick={() => field.onChange(!field.value)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${field.value ? 'bg-[#534AB7]' : 'bg-slate-200'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${field.value ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                )}
+              />
+            </div>
+
+            {watch('sizeChart.show') && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue('sizeChart.data', [
+                        { size: 'M', chest: '38', length: '27', sleeve: '7.5' },
+                        { size: 'L', chest: '40', length: '28', sleeve: '8' },
+                        { size: 'XL', chest: '42', length: '29', sleeve: '8.5' }
+                      ]);
+                    }}
+                    className="text-[10px] font-bold text-[#534AB7] hover:bg-[#534AB7]/10 px-3 py-1.5 rounded-lg border border-[#534AB7]/20 transition-all uppercase tracking-wider"
+                  >
+                    Use Default Template
+                  </button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
+                      <tr>
+                        <th className="px-4 py-3 rounded-l-lg">Size</th>
+                        <th className="px-4 py-3">Chest (in)</th>
+                        <th className="px-4 py-3">Length (in)</th>
+                        <th className="px-4 py-3">Sleeve (in)</th>
+                        <th className="px-4 py-3 rounded-r-lg w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      <Controller
+                        name="sizeChart.data"
+                        control={control}
+                        render={({ field }) => (
+                          <>
+                            {field.value.map((row, index) => (
+                              <tr key={index}>
+                                <td className="px-2 py-2">
+                                  <input
+                                    value={row.size}
+                                    onChange={(e) => {
+                                      const newData = [...field.value];
+                                      newData[index].size = e.target.value;
+                                      field.onChange(newData);
+                                    }}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:ring-1 focus:ring-[#534AB7] outline-none"
+                                    placeholder="M"
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <input
+                                    value={row.chest}
+                                    onChange={(e) => {
+                                      const newData = [...field.value];
+                                      newData[index].chest = e.target.value;
+                                      field.onChange(newData);
+                                    }}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:ring-1 focus:ring-[#534AB7] outline-none"
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <input
+                                    value={row.length}
+                                    onChange={(e) => {
+                                      const newData = [...field.value];
+                                      newData[index].length = e.target.value;
+                                      field.onChange(newData);
+                                    }}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:ring-1 focus:ring-[#534AB7] outline-none"
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <input
+                                    value={row.sleeve}
+                                    onChange={(e) => {
+                                      const newData = [...field.value];
+                                      newData[index].sleeve = e.target.value;
+                                      field.onChange(newData);
+                                    }}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:ring-1 focus:ring-[#534AB7] outline-none"
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => field.onChange(field.value.filter((_, i) => i !== index))}
+                                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                            <tr>
+                              <td colSpan={5} className="pt-4">
+                                <button
+                                  type="button"
+                                  onClick={() => field.onChange([...field.value, { size: '', chest: '', length: '', sleeve: '' }])}
+                                  className="w-full py-2 border-2 border-dashed border-slate-200 rounded-lg text-slate-500 hover:border-[#534AB7] hover:text-[#534AB7] transition-all text-xs font-bold"
+                                >
+                                  + ADD ROW
+                                </button>
+                              </td>
+                            </tr>
+                          </>
+                        )}
+                      />
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* SEO Collapsible */}
@@ -388,6 +573,17 @@ export const ProductForm: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Related Products Section */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mt-6">
+        <h3 className="text-slate-800 font-semibold mb-1 font-serif text-lg">Curated Related Products</h3>
+        <p className="text-slate-500 text-sm mb-4">Manually select up to 6 products to feature as 'Related Masterpieces' on this product's page. If left empty, automatic recommendations will be shown.</p>
+        <RelatedProductSelector 
+          selectedIds={relatedProducts} 
+          onChange={setRelatedProducts} 
+          currentProductId={id}
+        />
       </div>
     </form>
   );

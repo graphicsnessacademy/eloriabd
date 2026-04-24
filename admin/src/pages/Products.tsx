@@ -24,6 +24,7 @@ interface Product {
   price: number;
   originalPrice: number;
   inStock: boolean;
+  totalStock: number;
   isNewProduct: boolean;
   isBestSeller: boolean;
   image?: string;
@@ -248,13 +249,18 @@ export const Products: React.FC = () => {
                       )}
                     </td>
                     <td className="px-6 py-3">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
-                        product.inStock 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
-                          : 'bg-rose-50 text-rose-700 border-rose-100'
-                      }`}>
-                        {product.inStock ? 'In Stock' : 'Out of Stock'}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                          product.inStock 
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+                            : 'bg-rose-50 text-rose-700 border-rose-100'
+                        }`}>
+                          {product.inStock ? 'In Stock' : 'Stock Out'}
+                        </span>
+                        <span className="text-[11px] font-medium text-slate-500 ml-1">
+                          {product.totalStock || 0} units available
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-3 block md:table-cell">
                       <div className="flex flex-wrap gap-1">
