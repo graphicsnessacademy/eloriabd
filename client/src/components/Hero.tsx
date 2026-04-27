@@ -53,7 +53,7 @@ export default function Hero() {
   const slide = slides[current];
   const nextSlide = slides[(current + 1) % slides.length];
 
-  const getSlideUrl = (s: any) =>
+  const getSlideUrl = (s: { bgImage?: string }) =>
     s.bgImage?.startsWith('http')
       ? s.bgImage
       : 'https://images.unsplash.com/photo-1701252068382-fbe79b926cdc?q=80&w=1600&auto=format&fit=crop';

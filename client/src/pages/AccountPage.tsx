@@ -42,7 +42,6 @@ export interface UserProfile {
     phone: string;
     addresses: Address[];
     wishlist: string[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cart: unknown[];
 }
 
