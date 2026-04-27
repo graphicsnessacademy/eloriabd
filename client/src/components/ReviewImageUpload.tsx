@@ -27,7 +27,7 @@ export const ReviewImageUpload = ({ value, onChange, maxFiles = 3 }: Props) => {
       const res = await api.post('/api/upload', formData);
       // Map back to the expected structure
       onChange([...value, ...res.data]);
-    } catch (err) {
+    } catch {
       alert("Image upload failed. Please ensure file is under 5MB.");
     } finally {
       setUploading(false);

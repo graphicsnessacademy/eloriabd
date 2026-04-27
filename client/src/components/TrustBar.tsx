@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Truck, RotateCcw, ShieldCheck } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+
+// FIX: Replaced framer-motion (heavy ~120KB) with pure CSS keyframe animation.
+// The slide-in/out effect is identical but costs zero bundle weight.
 
 export default function TrustBar() {
     const [index, setIndex] = useState(0);
+    const [animKey, setAnimKey] = useState(0);
 
     const items = [
         {
@@ -20,19 +23,19 @@ export default function TrustBar() {
         }
     ];
 
-    // Auto-play logic for mobile slider
     useEffect(() => {
         const timer = setInterval(() => {
-            setIndex((prev) => (prev + 1) % items.length);
-        }, 3000); // Changes every 3 seconds
+            setIndex(prev => (prev + 1) % items.length);
+            setAnimKey(k => k + 1);
+        }, 3000);
         return () => clearInterval(timer);
     }, [items.length]);
 
     return (
-        <div className="bg-white border-b border-eloria-lavender/20 py-6 md:py-8 overflow-hidden">
+        <div className="bg-[white] border-b border-eloria-lavender/20 py-3 md:py-4 mb-8 overflow-hidden">
             <div className="max-w-7xl mx-auto px-4 md:px-8">
 
-                {/* --- DESKTOP VIEW (Side by Side) --- */}
+                {/* Desktop — side by side */}
                 <div className="hidden md:grid grid-cols-3 gap-4">
                     {items.map((item, i) => (
                         <div key={i} className="flex items-center justify-center gap-4 text-sm font-medium text-eloria-dark/80">
@@ -47,36 +50,44 @@ export default function TrustBar() {
                     ))}
                 </div>
 
-                {/* --- MOBILE VIEW (Auto Slider) --- */}
+                {/* Mobile — CSS slide animation, no framer-motion */}
                 <div className="md:hidden relative h-12 flex items-center justify-center">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={index}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.4, ease: "easeInOut" }}
-                            className="flex items-center gap-4 text-xs font-medium text-eloria-dark/80"
-                        >
-                            <div className="w-8 h-8 rounded-full bg-eloria-lavender/10 flex items-center justify-center shrink-0">
-                                {items[index].icon}
-                            </div>
-                            <span className="tracking-wide">{items[index].text}</span>
-                        </motion.div>
-                    </AnimatePresence>
+                    <div
+                        key={animKey}
+                        className="flex items-center gap-4 text-xs font-medium text-eloria-dark/80 trustbar-slide"
+                    >
+                        <div className="w-8 h-8 rounded-full bg-eloria-lavender/10 flex items-center justify-center shrink-0">
+                            {items[index].icon}
+                        </div>
+                        <span className="tracking-wide">{items[index].text}</span>
+                    </div>
 
-                    {/* Mobile Dots Indicator */}
+                    {/* Dots indicator */}
                     <div className="absolute -bottom-2 flex gap-1.5">
                         {items.map((_, i) => (
                             <div
                                 key={i}
-                                className={`w-1 h-1 rounded-full transition-all duration-300 ${i === index ? 'bg-eloria-purple w-3' : 'bg-eloria-lavender/40'}`}
+                                className={`h-1 rounded-full transition-all duration-300 ${i === index ? 'bg-eloria-purple w-3' : 'bg-eloria-lavender/40 w-1'
+                                    }`}
                             />
                         ))}
                     </div>
                 </div>
 
             </div>
+
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @keyframes trustbarSlide {
+                    0%   { opacity: 0; transform: translateY(10px); }
+                    15%  { opacity: 1; transform: translateY(0); }
+                    85%  { opacity: 1; transform: translateY(0); }
+                    100% { opacity: 0; transform: translateY(-10px); }
+                }
+                .trustbar-slide {
+                    animation: trustbarSlide 3s ease-in-out forwards;
+                }
+            `}} />
         </div>
     );
 }

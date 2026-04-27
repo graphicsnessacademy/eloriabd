@@ -1,3 +1,11 @@
+// client/src/pages/AccountPage.tsx
+// CHANGES:
+// 1. OrdersTab order item productId extraction updated to multi-source rawPid pattern
+// 2. const pid = rawPid ? String(rawPid) : null
+// 3. const isValidPid = pid && /^[a-f\d]{24}$/i.test(pid)
+// 4. <Link> only rendered if isValidPid — otherwise plain <span> (no broken links)
+// 5. All other UI unchanged
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -35,7 +43,7 @@ export interface UserProfile {
     addresses: Address[];
     wishlist: string[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    cart: any[];
+    cart: unknown[];
 }
 
 export interface ProductItem {
@@ -44,14 +52,13 @@ export interface ProductItem {
     name: string;
     price: number;
     image: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 // ─────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────
 
-// ── Avatar initials ──
 function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg' }) {
     const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
     const sz = { sm: 'w-8 h-8 text-xs', md: 'w-11 h-11 text-sm', lg: 'w-20 h-20 text-2xl' };
@@ -62,7 +69,6 @@ function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg'
     );
 }
 
-// ── Section header ──
 function SectionTitle({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex items-center gap-3 mb-6">
@@ -104,12 +110,12 @@ function DashboardTab({ user, onTabChange }: { user: UserProfile | null; onTabCh
             }
         };
         fetchOrderCount();
-    }, [user?._id, user?.id]);
+    }, [user?._id, user?.id, user]);
 
     const stats = [
-        { label: 'Cart Items', value: cart.length, tab: 'cart' as Tab, icon: ShoppingCart, color: 'bg-[#f0eeff] text-[#534AB7]' },
-        { label: 'Wishlist', value: wishlist.length, tab: 'wishlist' as Tab, icon: Heart, color: 'bg-[#fff0f5] text-[#D4537E]' },
-        { label: 'Orders', value: orderCount, tab: 'orders' as Tab, icon: Package, color: 'bg-[#f0f7ff] text-[#3b82f6]' },
+        { label: 'Cart Items', value: cart.length,    tab: 'cart'     as Tab, icon: ShoppingCart, color: 'bg-[#f0eeff] text-[#534AB7]' },
+        { label: 'Wishlist',   value: wishlist.length, tab: 'wishlist' as Tab, icon: Heart,         color: 'bg-[#fff0f5] text-[#D4537E]' },
+        { label: 'Orders',     value: orderCount,      tab: 'orders'   as Tab, icon: Package,       color: 'bg-[#f0f7ff] text-[#3b82f6]' },
     ];
 
     const handleLogout = () => {
@@ -123,9 +129,9 @@ function DashboardTab({ user, onTabChange }: { user: UserProfile | null; onTabCh
             const token = localStorage.getItem('eloria_token');
             const res = await fetch(`${API_URL}/api/user/update`, {
                 method: 'PUT',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(editForm)
             });
@@ -148,19 +154,18 @@ function DashboardTab({ user, onTabChange }: { user: UserProfile | null; onTabCh
             {/* Profile card */}
             <div className="bg-gradient-to-br from-[#534AB7]/5 via-white to-[#D4537E]/5 border border-gray-100 rounded-sm p-6 flex items-start justify-between gap-4 transition-all">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 w-full">
-                    {/* Avatar naturally updates since user?.name changes */}
                     <Avatar name={user?.name || 'Guest User'} size="lg" />
-                    
+
                     {isEditing ? (
                         <div className="flex flex-col gap-3 w-full max-w-xs transition-all animate-in slide-in-from-left-4">
-                            <input 
+                            <input
                                 type="text"
                                 value={editForm.name}
                                 onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
                                 placeholder="Full Name"
                                 className="w-full text-sm font-semibold border-b border-gray-300 py-1.5 focus:border-[#534AB7] outline-none transition-colors bg-transparent"
                             />
-                            <input 
+                            <input
                                 type="tel"
                                 value={editForm.phone}
                                 onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
@@ -189,7 +194,9 @@ function DashboardTab({ user, onTabChange }: { user: UserProfile | null; onTabCh
                     ) : (
                         <div className="animate-in fade-in zoom-in-95">
                             <p className="text-xs font-bold uppercase tracking-[0.25em] text-gray-400 mb-1">Welcome back</p>
-                            <h3 className="text-xl font-serif font-bold text-gray-900 truncate max-w-[200px] sm:max-w-xs">{user?.name || 'Guest User'}</h3>
+                            <h3 className="text-xl font-serif font-bold text-gray-900 truncate max-w-[200px] sm:max-w-xs">
+                                {user?.name || 'Guest User'}
+                            </h3>
                             <p className="text-xs text-gray-500 mt-1">{user?.email || 'Not signed in'}</p>
                             {user?.phone && <p className="text-xs text-gray-500">{user.phone}</p>}
                         </div>
@@ -239,9 +246,9 @@ function DashboardTab({ user, onTabChange }: { user: UserProfile | null; onTabCh
                 <SectionTitle>Quick Access</SectionTitle>
                 <div className="space-y-1">
                     {[
-                        { label: 'My Cart', tab: 'cart' as Tab, icon: ShoppingCart, desc: `${cart.length} items` },
-                        { label: 'My Wishlist', tab: 'wishlist' as Tab, icon: Heart, desc: `${wishlist.length} saved` },
-                        { label: 'Saved Addresses', tab: 'address' as Tab, icon: MapPin, desc: 'Manage delivery addresses' },
+                        { label: 'My Cart',         tab: 'cart'     as Tab, icon: ShoppingCart, desc: `${cart.length} items` },
+                        { label: 'My Wishlist',     tab: 'wishlist' as Tab, icon: Heart,         desc: `${wishlist.length} saved` },
+                        { label: 'Saved Addresses', tab: 'address'  as Tab, icon: MapPin,        desc: 'Manage delivery addresses' },
                     ].map(({ label, tab, icon: Icon, desc }) => (
                         <button
                             key={tab}
@@ -308,7 +315,7 @@ function AddressTab() {
 
     const handleSave = async () => {
         if (!form.recipientName || !form.contact || !form.district || !form.area || !form.address) return;
-        
+
         let newAddresses: Address[];
         if (editIndex !== null) {
             newAddresses = addresses.map((a, i) => i === editIndex ? { ...form, id: a.id } as Address : a);
@@ -316,7 +323,7 @@ function AddressTab() {
             const newAddr = { ...form, id: Date.now().toString(), isDefault: addresses.length === 0 } as Address;
             newAddresses = [...addresses, newAddr];
         }
-        
+
         await syncAddresses(newAddresses);
         setShowForm(false);
         setEditIndex(null);
@@ -355,10 +362,12 @@ function AddressTab() {
                 </div>
             )}
 
-            {/* Address cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {addresses.map((addr, idx) => (
-                    <div key={addr.id || idx} className={`relative border rounded-sm p-4 transition-all ${addr.isDefault ? 'border-[#534AB7]/40 bg-[#534AB7]/3' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
+                    <div
+                        key={addr.id || idx}
+                        className={`relative border rounded-sm p-4 transition-all ${addr.isDefault ? 'border-[#534AB7]/40 bg-[#534AB7]/3' : 'border-gray-100 bg-white hover:border-gray-200'}`}
+                    >
                         {addr.isDefault && (
                             <span className="absolute top-3 right-3 text-[8px] font-extrabold uppercase tracking-widest bg-[#534AB7] text-white px-2 py-0.5 rounded-sm">Default</span>
                         )}
@@ -373,7 +382,9 @@ function AddressTab() {
                             <>
                                 <p className="text-xs font-bold text-gray-800">{addr.recipientName}</p>
                                 <p className="text-xs text-gray-500 mt-0.5">{addr.contact}</p>
-                                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{addr.address}, {addr.area}, {addr.district}, {addr.country} {addr.postCode}</p>
+                                <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                                    {addr.address}, {addr.area}, {addr.district}, {addr.country} {addr.postCode}
+                                </p>
                             </>
                         ) : (
                             <p className="text-xs text-gray-400 italic">No details yet — click edit to fill in.</p>
@@ -392,7 +403,6 @@ function AddressTab() {
                     </div>
                 ))}
 
-                {/* Add new card */}
                 <button
                     onClick={() => { setForm(emptyForm); setEditIndex(null); setShowForm(true); }}
                     className="border-2 border-dashed border-gray-200 rounded-sm p-4 flex flex-col items-center justify-center gap-2 hover:border-[#534AB7]/40 hover:bg-[#534AB7]/3 transition-all group min-h-[140px]"
@@ -404,7 +414,6 @@ function AddressTab() {
                 </button>
             </div>
 
-            {/* Form drawer */}
             {showForm && (
                 <div className="border border-[#534AB7]/20 rounded-sm bg-[#534AB7]/3 p-5 space-y-4">
                     <div className="flex items-center justify-between mb-2">
@@ -420,7 +429,8 @@ function AddressTab() {
                         <label className={labelCls}>Address Type</label>
                         <div className="flex gap-2">
                             {(['Home', 'Office'] as const).map(l => (
-                                <button key={l}
+                                <button
+                                    key={l}
                                     onClick={() => setForm(f => ({ ...f, label: l }))}
                                     className={`flex items-center gap-1.5 px-4 py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest border transition-all ${form.label === l ? 'bg-[#534AB7] text-white border-[#534AB7]' : 'bg-white text-gray-500 border-gray-200 hover:border-[#534AB7]/40'}`}
                                 >
@@ -462,14 +472,27 @@ function AddressTab() {
                     </div>
                     <div>
                         <label className={labelCls}>Full Address *</label>
-                        <textarea className={`${inputCls} resize-none`} rows={3} placeholder="House / Building / Street" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
+                        <textarea
+                            className={`${inputCls} resize-none`}
+                            rows={3}
+                            placeholder="House / Building / Street"
+                            value={form.address}
+                            onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+                        />
                     </div>
 
                     <div className="flex gap-3 pt-1">
-                        <button onClick={handleSave} disabled={isSaving} className="flex-1 bg-[#534AB7] text-white text-[10px] font-bold uppercase tracking-widest py-3 rounded-sm hover:bg-[#3d3599] transition-colors active:scale-[0.98] disabled:opacity-50">
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="flex-1 bg-[#534AB7] text-white text-[10px] font-bold uppercase tracking-widest py-3 rounded-sm hover:bg-[#3d3599] transition-colors active:scale-[0.98] disabled:opacity-50"
+                        >
                             {isSaving ? 'Saving...' : 'Save Address'}
                         </button>
-                        <button onClick={() => { setShowForm(false); setEditIndex(null); }} className="px-6 border border-gray-200 text-[10px] font-bold uppercase tracking-widest text-gray-500 rounded-sm hover:bg-gray-50 transition-colors">
+                        <button
+                            onClick={() => { setShowForm(false); setEditIndex(null); }}
+                            className="px-6 border border-gray-200 text-[10px] font-bold uppercase tracking-widest text-gray-500 rounded-sm hover:bg-gray-50 transition-colors"
+                        >
                             Cancel
                         </button>
                     </div>
@@ -486,7 +509,7 @@ function CartTab() {
     const { cart, removeFromCart, updateCartQuantity, clearCart } = useStore();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const subtotal = cart.reduce((sum: number, item: any) => sum + item.price * (item.quantity || 1), 0);
+    const subtotal   = cart.reduce((sum: number, item: any) => sum + item.price * (item.quantity || 1), 0);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const totalItems = cart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
 
@@ -513,18 +536,23 @@ function CartTab() {
 
             <div className="flex items-center justify-between -mt-2 mb-2">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{totalItems} items</p>
-                <button onClick={clearCart} className="text-[9px] font-bold uppercase tracking-widest text-red-400 hover:text-red-600 transition-colors flex items-center gap-1">
+                <button
+                    onClick={clearCart}
+                    className="text-[9px] font-bold uppercase tracking-widest text-red-400 hover:text-red-600 transition-colors flex items-center gap-1"
+                >
                     <Trash2 className="w-3 h-3" /> Clear All
                 </button>
             </div>
 
-            {/* Items */}
             <div className="space-y-3">
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {cart.map((item: any, idx: number) => {
                     const id = item._id || item.id;
                     return (
-                        <div key={`${id}-${item.size}-${item.color}-${idx}`} className="flex gap-3 p-3 border border-gray-100 rounded-sm hover:border-gray-200 transition-all bg-white">
+                        <div
+                            key={`${id}-${item.size}-${item.color}-${idx}`}
+                            className="flex gap-3 p-3 border border-gray-100 rounded-sm hover:border-gray-200 transition-all bg-white"
+                        >
                             <Link to={`/product/${id}`} className="w-16 h-16 shrink-0 rounded-sm overflow-hidden bg-gray-50">
                                 <img src={item.image} alt={item.name} className="w-full h-full object-cover hover:scale-105 transition-transform" referrerPolicy="no-referrer" />
                             </Link>
@@ -542,7 +570,6 @@ function CartTab() {
                                 </div>
                                 <div className="flex items-center justify-between mt-2">
                                     <span className="text-xs font-bold text-gray-900">৳{(item.price * (item.quantity || 1)).toLocaleString()}</span>
-                                    {/* Qty controls */}
                                     <div className="flex items-center gap-1">
                                         <button
                                             onClick={() => updateCartQuantity(id, item.size, item.color, (item.quantity || 1) - 1)}
@@ -571,7 +598,6 @@ function CartTab() {
                 })}
             </div>
 
-            {/* Order summary */}
             <div className="border border-gray-100 rounded-sm p-5 bg-gray-50 space-y-3">
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.3em] text-gray-500 mb-4">Order Summary</p>
                 <div className="flex justify-between text-xs text-gray-600">
@@ -628,7 +654,7 @@ function WishlistTab({ products }: { products: ProductItem[] }) {
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {wishlisted.map((product: any) => {
                     const pid = product._id || product.id;
-                    const isOut = product.inStock === false || product.stock === 0;
+                    const isOut  = product.inStock === false || product.stock === 0;
                     const isSale = !isOut && product.originalPrice && product.originalPrice > product.price;
                     return (
                         <div key={pid} className="group border border-gray-100 rounded-sm overflow-hidden hover:shadow-sm transition-all bg-white">
@@ -662,10 +688,11 @@ function WishlistTab({ products }: { products: ProductItem[] }) {
                                 <button
                                     disabled={isOut}
                                     onClick={() => !isOut && addToCart(product)}
-                                    className={`mt-2 w-full py-2 text-[9px] font-bold uppercase tracking-widest rounded-sm transition-all active:scale-[0.98] ${isOut
+                                    className={`mt-2 w-full py-2 text-[9px] font-bold uppercase tracking-widest rounded-sm transition-all active:scale-[0.98] ${
+                                        isOut
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             : 'bg-[#534AB7] text-white hover:bg-[#3d3599]'
-                                        }`}
+                                    }`}
                                 >
                                     {isOut ? 'Out of Stock' : 'Add to Cart'}
                                 </button>
@@ -688,12 +715,12 @@ function OrdersTab({ user }: { user: UserProfile | null }) {
 
     useEffect(() => {
         if (!user || (!user._id && !user.id)) return;
-        
+
         const fetchOrders = async () => {
             try {
-                const token = localStorage.getItem('eloria_token');
+                const token  = localStorage.getItem('eloria_token');
                 const userId = user._id || user.id;
-                const res = await fetch(`${API_URL}/api/orders/user/${userId}`, {
+                const res    = await fetch(`${API_URL}/api/orders/user/${userId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -707,10 +734,14 @@ function OrdersTab({ user }: { user: UserProfile | null }) {
             }
         };
         fetchOrders();
-    }, [user?._id, user?.id]);
+    }, [user?._id, user?.id, user]);
 
     if (loading) {
-        return <div className="py-20 text-center"><p className="text-xs text-gray-400 font-bold uppercase tracking-widest animate-pulse">Loading orders...</p></div>;
+        return (
+            <div className="py-20 text-center">
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest animate-pulse">Loading orders...</p>
+            </div>
+        );
     }
 
     if (orders.length === 0) {
@@ -720,7 +751,9 @@ function OrdersTab({ user }: { user: UserProfile | null }) {
                     <Package className="w-6 h-6 text-gray-300" />
                 </div>
                 <h3 className="text-lg font-serif text-gray-700 mb-2">No orders found</h3>
-                <p className="text-xs text-gray-400 mb-6 max-w-sm mx-auto">You haven't placed any orders yet. Discover our latest collections and find something you love.</p>
+                <p className="text-xs text-gray-400 mb-6 max-w-sm mx-auto">
+                    You haven't placed any orders yet. Discover our latest collections and find something you love.
+                </p>
                 <Link to="/shop" className="inline-flex items-center gap-2 bg-[#1a1a1a] text-white text-[10px] font-bold uppercase tracking-widest px-6 py-3 rounded-sm hover:bg-[#534AB7] transition-colors">
                     Shop Collection <ChevronRight className="w-3 h-3" />
                 </Link>
@@ -731,25 +764,18 @@ function OrdersTab({ user }: { user: UserProfile | null }) {
     const getStatusStyles = (status: string) => {
         const s = status || 'Pending';
         switch (s) {
-            case 'Delivered': 
-            case 'Completed': 
-                return 'bg-green-50 text-green-700 border-green-200';
-            case 'Cancelled': 
-            case 'Returned': 
-                return 'bg-[#D4537E]/10 text-[#D4537E] border-[#D4537E]/20';
-            case 'Pending':
-                return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-            case 'Confirmed':
-                return 'bg-blue-50 text-blue-700 border-blue-200';
-            case 'Packaged':
-                return 'bg-purple-50 text-purple-700 border-purple-200';
-            case 'On Courier':
-                return 'bg-indigo-50 text-indigo-700 border-indigo-200';
-            default: 
-                return 'bg-gray-50 text-gray-700 border-gray-200';
+            case 'Delivered':
+            case 'Completed':   return 'bg-green-50 text-green-700 border-green-200';
+            case 'Cancelled':
+            case 'Returned':    return 'bg-[#D4537E]/10 text-[#D4537E] border-[#D4537E]/20';
+            case 'Pending':     return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+            case 'Confirmed':   return 'bg-blue-50 text-blue-700 border-blue-200';
+            case 'Packaged':    return 'bg-purple-50 text-purple-700 border-purple-200';
+            case 'On Courier':  return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+            default:            return 'bg-gray-50 text-gray-700 border-gray-200';
         }
     };
-    
+
     const getStatusLabel = (status: string) => {
         const s = status || 'Pending';
         if (s === 'Completed') return 'Delivered';
@@ -762,6 +788,7 @@ function OrdersTab({ user }: { user: UserProfile | null }) {
             <div className="space-y-4">
                 {orders.map((order) => (
                     <div key={order._id} className="border border-gray-100 rounded-sm bg-white overflow-hidden hover:shadow-sm transition-all">
+
                         {/* Order Header */}
                         <div className="bg-gray-50/50 p-4 border-b border-gray-100 flex flex-wrap gap-4 items-center justify-between">
                             <div>
@@ -770,7 +797,9 @@ function OrdersTab({ user }: { user: UserProfile | null }) {
                             </div>
                             <div>
                                 <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-1">Date Placed</p>
-                                <p className="text-xs text-gray-800">{new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                <p className="text-xs text-gray-800">
+                                    {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </p>
                             </div>
                             <div>
                                 <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-1">Total</p>
@@ -786,24 +815,62 @@ function OrdersTab({ user }: { user: UserProfile | null }) {
                         {/* Order Items */}
                         <div className="p-4 space-y-3">
                             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                            {order.items.map((item: any, idx: number) => (
-                                <div key={idx} className="flex items-center gap-4 py-2">
-                                    <div className="w-14 h-14 bg-gray-50 rounded-sm overflow-hidden shrink-0 border border-gray-100">
-                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <Link to={`/product/${item.productId}`} className="text-[11px] font-bold uppercase tracking-tight text-gray-800 truncate block hover:text-[#534AB7] transition-colors">{item.name}</Link>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            {item.size && item.size !== 'Standard' && <span className="text-[9px] font-bold text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded-sm">Size: {item.size}</span>}
-                                            {item.color && item.color !== 'Default' && <span className="text-[9px] font-bold text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded-sm">Color: {item.color}</span>}
-                                            <span className="text-[10px] text-gray-500 ml-auto font-bold text-gray-800">Qty: {item.quantity || 1}</span>
+                            {order.items.map((item: any, idx: number) => {
+                                // Multi-source productId extraction
+                                const rawPid = item.productId?._id
+                                    || item.productId
+                                    || item.product?._id
+                                    || item.product
+                                    || item._id;
+                                const pid        = rawPid ? String(rawPid) : null;
+                                const isValidPid = pid && /^[a-f\d]{24}$/i.test(pid);
+
+                                return (
+                                    <div key={idx} className="flex items-center gap-4 py-2">
+                                        <div className="w-14 h-14 bg-gray-50 rounded-sm overflow-hidden shrink-0 border border-gray-100">
+                                            <img
+                                                src={item.image}
+                                                alt={item.name}
+                                                className="w-full h-full object-cover"
+                                                referrerPolicy="no-referrer"
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            {/* Only render Link if pid is a valid 24-hex ObjectId */}
+                                            {isValidPid ? (
+                                                <Link
+                                                    to={`/product/${pid}`}
+                                                    className="text-[11px] font-bold uppercase tracking-tight text-gray-800 truncate block hover:text-[#534AB7] transition-colors"
+                                                >
+                                                    {item.name}
+                                                </Link>
+                                            ) : (
+                                                <span className="text-[11px] font-bold uppercase tracking-tight text-gray-800 truncate block">
+                                                    {item.name}
+                                                </span>
+                                            )}
+                                            <div className="flex items-center gap-2 mt-1">
+                                                {item.size && item.size !== 'Standard' && (
+                                                    <span className="text-[9px] font-bold text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded-sm">
+                                                        Size: {item.size}
+                                                    </span>
+                                                )}
+                                                {item.color && item.color !== 'Default' && (
+                                                    <span className="text-[9px] font-bold text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded-sm">
+                                                        Color: {item.color}
+                                                    </span>
+                                                )}
+                                                <span className="text-[10px] text-gray-500 ml-auto font-bold text-gray-800">
+                                                    Qty: {item.quantity || 1}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <p className="text-xs font-bold text-gray-900">৳{item.price.toLocaleString()}</p>
                                         </div>
                                     </div>
-                                    <div className="text-right shrink-0">
-                                        <p className="text-xs font-bold text-gray-900">৳{item.price.toLocaleString()}</p>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 ))}
@@ -824,7 +891,6 @@ export default function AccountPage({ products = [] }: AccountPageProps) {
     const [activeTab, setActiveTab] = useState<Tab>('dashboard');
     const navigate = useNavigate();
 
-    // 1. Strict Account Access Route Guard
     useEffect(() => {
         if (!user && !localStorage.getItem('eloria_token')) {
             navigate('/');
@@ -832,14 +898,14 @@ export default function AccountPage({ products = [] }: AccountPageProps) {
         }
     }, [user, navigate, setIsAuthOpen]);
 
-    if (!user) return <div className="min-h-screen bg-[#fafafa]" />; // Clean empty fallback while protected
+    if (!user) return <div className="min-h-screen bg-[#fafafa]" />;
 
     const tabs: { id: Tab; label: string; icon: React.ElementType; badge?: number }[] = [
         { id: 'dashboard', label: 'Dashboard', icon: User },
-        { id: 'orders', label: 'Orders', icon: Package },
-        { id: 'address', label: 'Address', icon: MapPin },
-        { id: 'cart', label: 'Cart', icon: ShoppingCart, badge: cart.length },
-        { id: 'wishlist', label: 'Wishlist', icon: Heart, badge: wishlist.length },
+        { id: 'orders',    label: 'Orders',    icon: Package },
+        { id: 'address',   label: 'Address',   icon: MapPin },
+        { id: 'cart',      label: 'Cart',      icon: ShoppingCart, badge: cart.length },
+        { id: 'wishlist',  label: 'Wishlist',  icon: Heart,        badge: wishlist.length },
     ];
 
     return (
@@ -876,25 +942,27 @@ export default function AccountPage({ products = [] }: AccountPageProps) {
 
             <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col lg:flex-row gap-6">
 
-                {/* ── Sidebar Nav ── */}
+                {/* Sidebar Nav */}
                 <aside className="lg:w-52 shrink-0">
                     <nav className="bg-white border border-gray-100 rounded-sm overflow-hidden">
                         {tabs.map(({ id, label, icon: Icon, badge }) => (
                             <button
                                 key={id}
                                 onClick={() => setActiveTab(id)}
-                                className={`w-full flex items-center justify-between px-4 py-3.5 text-left transition-all border-l-2 ${activeTab === id
+                                className={`w-full flex items-center justify-between px-4 py-3.5 text-left transition-all border-l-2 ${
+                                    activeTab === id
                                         ? 'border-l-[#534AB7] bg-[#534AB7]/5 text-[#534AB7]'
                                         : 'border-l-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-                                    }`}
+                                }`}
                             >
                                 <div className="flex items-center gap-3">
                                     <Icon className="w-3.5 h-3.5" />
                                     <span className="text-[10px] font-bold uppercase tracking-[0.2em]">{label}</span>
                                 </div>
                                 {badge !== undefined && badge > 0 && (
-                                    <span className={`text-[9px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center ${activeTab === id ? 'bg-[#534AB7] text-white' : 'bg-gray-100 text-gray-500'
-                                        }`}>
+                                    <span className={`text-[9px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center ${
+                                        activeTab === id ? 'bg-[#534AB7] text-white' : 'bg-gray-100 text-gray-500'
+                                    }`}>
                                         {badge}
                                     </span>
                                 )}
@@ -902,7 +970,6 @@ export default function AccountPage({ products = [] }: AccountPageProps) {
                         ))}
                     </nav>
 
-                    {/* Guest nudge */}
                     {!user && (
                         <div className="mt-3 bg-amber-50 border border-amber-200 rounded-sm p-3">
                             <p className="text-[9px] font-bold uppercase tracking-widest text-amber-700 mb-1.5">Guest Mode</p>
@@ -911,13 +978,13 @@ export default function AccountPage({ products = [] }: AccountPageProps) {
                     )}
                 </aside>
 
-                {/* ── Content Panel ── */}
+                {/* Content Panel */}
                 <main className="flex-1 bg-white border border-gray-100 rounded-sm p-5 md:p-7 min-h-[500px]">
                     {activeTab === 'dashboard' && <DashboardTab user={user} onTabChange={setActiveTab} />}
-                    {activeTab === 'orders' && <OrdersTab user={user} />}
-                    {activeTab === 'address' && <AddressTab />}
-                    {activeTab === 'cart' && <CartTab />}
-                    {activeTab === 'wishlist' && <WishlistPage products={products} />}
+                    {activeTab === 'orders'    && <OrdersTab user={user} />}
+                    {activeTab === 'address'   && <AddressTab />}
+                    {activeTab === 'cart'      && <CartTab />}
+                    {activeTab === 'wishlist'  && <WishlistPage products={products} />}
                 </main>
             </div>
         </div>

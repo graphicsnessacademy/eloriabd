@@ -12,7 +12,15 @@ export const UserDetail: React.FC = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    const [user, setUser] = useState<any>(null);
+    const [user, setUser] = useState<{
+        name: string;
+        status: string;
+        email: string;
+        phone?: string;
+        createdAt: string;
+        addresses: any[];
+        wishlist: any[];
+    } | null>(null);
     const [activity, setActivity] = useState<{ orders: any[], events: any[] }>({ orders: [], events: [] });
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'orders' | 'wishlist' | 'behavior'>('orders');
@@ -54,9 +62,9 @@ export const UserDetail: React.FC = () => {
         );
     }
 
-    const defaultAddress = user.addresses?.find((a: any) => a.isDefault) || user.addresses?.[0];
+    const defaultAddress = user.addresses?.find((a: { isDefault: boolean }) => a.isDefault) || user.addresses?.[0];
 
-    const formatEventAction = (event: any) => {
+    const formatEventAction = (event: { eventType: string; payload?: { path?: string; name?: string } }) => {
         switch (event.eventType) {
             case 'page_view':
                 if (event.payload?.path?.includes('/search')) {
@@ -118,7 +126,7 @@ export const UserDetail: React.FC = () => {
                             </div>
                             <div className="text-center">
                                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Spent</p>
-                                <p className="text-xl font-bold text-[#534AB7]">৳{activity.orders.reduce((acc, o) => acc + o.total, 0).toLocaleString()}</p>
+                                <p className="text-xl font-bold text-[#534AB7]">৳{activity.orders.reduce((acc: number, o: { total: number }) => acc + o.total, 0).toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
@@ -236,7 +244,7 @@ export const UserDetail: React.FC = () => {
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                                        {user.wishlist.map((item: any) => (
+                                        {user.wishlist.map((item: { _id: string; image: string; name: string; price: number }) => (
                                             <div key={item._id} className="group relative">
                                                 <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 mb-3 shadow-sm group-hover:shadow-md transition-all">
                                                     <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />

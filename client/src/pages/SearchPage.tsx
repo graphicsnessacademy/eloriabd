@@ -1,10 +1,9 @@
 import { useSearchParams } from 'react-router-dom';
 import { useMemo } from 'react';
 import Fuse from 'fuse.js';
-import ProductCard from '../components/ProductCard';
+import ProductCard, { Product } from '../components/ProductCard';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function SearchPage({ products }: { products: any[] }) {
+export default function SearchPage({ products }: { products: Product[] }) {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
 
@@ -40,7 +39,7 @@ export default function SearchPage({ products }: { products: any[] }) {
     const raw = fuse.search(query);
 
     // Sort is already by score (best first). Unwrap the item.
-    return raw.map((r: any) => r.item);
+    return raw.map((r) => r.item);
   }, [fuse, products, query]);
 
   return (
@@ -60,7 +59,7 @@ export default function SearchPage({ products }: { products: any[] }) {
 
         {results.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {results.map((product: any) => (
+            {results.map((product) => (
               <ProductCard key={product._id || product.id} product={product} />
             ))}
           </div>

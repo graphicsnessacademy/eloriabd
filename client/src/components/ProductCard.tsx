@@ -1,15 +1,22 @@
+// client/src/components/ProductCard.tsx
+// PERFORMANCE FIXES:
+// 1. Added loading="lazy" to product images — prevents off-screen images from blocking load
+// 2. Added explicit width/height to avoid layout shift (CLS)
+// 3. productId = String(product._id || product.id) — always a plain string, safe for URLs
+// 4. All UI unchanged: badges (NEW, SALE, Out of Stock), grayscale, action bar, discount %
+
 import { ShoppingCart, ArrowRight, Zap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 
-interface Product {
-    id: string;
+export interface Product {
     _id?: string;
+    id?: string;
     name: string;
     price: number;
     originalPrice?: number;
     image?: string;
-    images?: { url: string, publicId: string, isPrimary: boolean }[];
+    images?: { url: string; publicId: string; isPrimary: boolean }[];
     category?: string;
     isNewProduct?: boolean;
     isViewMore?: boolean;
@@ -22,9 +29,8 @@ export default function ProductCard({ product }: { product: Product }) {
     const { addToCart, orderNow } = useStore();
     const navigate = useNavigate();
 
-    const productId = product._id || product.id;
-    
-    // dynamically determine either the new Schema images buffer or legacy fallback
+    const productId = String(product._id || product.id);
+
     let heroImageUrl = product.image;
     if (product.images && product.images.length > 0) {
         const primaryImg = product.images.find(img => img.isPrimary) || product.images[0];
@@ -32,9 +38,9 @@ export default function ProductCard({ product }: { product: Product }) {
     }
     heroImageUrl = heroImageUrl || 'https://via.placeholder.com/400?text=No+Image';
 
-    const isNew = product.isNewProduct || product.category === 'New Arrival';
-    const isOut = product.inStock === false || product.stock === 0;
-    const isSale = !isOut && !!(product.originalPrice && product.originalPrice > product.price);
+    const isNew      = product.isNewProduct || product.category === 'New Arrival';
+    const isOut      = product.inStock === false || product.stock === 0;
+    const isSale     = !isOut && !!(product.originalPrice && product.originalPrice > product.price);
     const discountPct = isSale
         ? Math.round(((product.originalPrice! - product.price) / product.originalPrice!) * 100)
         : 0;
@@ -51,6 +57,9 @@ export default function ProductCard({ product }: { product: Product }) {
                         src={heroImageUrl}
                         className="absolute inset-0 opacity-50 blur-[2px]"
                         alt="View More"
+                        loading="lazy"
+                        width={400}
+                        height={400}
                     />
                     <div className="relative z-10 flex flex-col items-center gap-2 text-center">
                         <div className="w-10 h-10 rounded-full border border-white flex items-center justify-center group-hover:bg-white group-hover:text-black transition-colors">
@@ -71,18 +80,22 @@ export default function ProductCard({ product }: { product: Product }) {
 
             {/* Image Section */}
             <div className="relative aspect-square overflow-hidden bg-gray-50">
-                {/* 1. LINK TO PRODUCT DETAIL PAGE (IMAGE) */}
+
                 <Link to={`/product/${productId}`} className="block w-full h-full">
                     <img
                         src={heroImageUrl}
                         alt={product.name}
-                        className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${isOut ? 'grayscale opacity-60' : ''
-                            }`}
+                        // FIX: lazy loading prevents off-screen images from competing with hero
+                        loading="lazy"
+                        width={400}
+                        height={400}
+                        className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${
+                            isOut ? 'grayscale opacity-60' : ''
+                        }`}
                         referrerPolicy="no-referrer"
                     />
                 </Link>
 
-                {/* Stock-out centre overlay */}
                 {isOut && (
                     <div className="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none">
                         <span className="bg-black/75 text-white text-[9px] font-bold tracking-[0.25em] uppercase px-3 py-1.5 rounded-sm">
@@ -91,7 +104,6 @@ export default function ProductCard({ product }: { product: Product }) {
                     </div>
                 )}
 
-                {/* Badges — top-left */}
                 {!isOut && (
                     <div className="absolute top-2 left-2 flex flex-col gap-1 z-10 pointer-events-none">
                         {isNew && (
@@ -107,34 +119,28 @@ export default function ProductCard({ product }: { product: Product }) {
                     </div>
                 )}
 
-                {/* Discount % — top-right */}
                 {isSale && discountPct > 0 && (
                     <span className="absolute top-2 right-2 bg-[#D4537E] text-white text-[8px] font-extrabold leading-none px-1.5 py-1 rounded-sm z-10 pointer-events-none">
                         -{discountPct}%
                     </span>
                 )}
 
-                {/*
-                    Action bar — slides up on hover (desktop), always visible on mobile
-                */}
                 <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col gap-1 p-2 transition-all duration-300 lg:translate-y-full lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100">
-
-                    {/* Row 2: order now + Wishlist */}
                     <div className="flex items-center gap-1">
-
                         <button
                             disabled={isOut}
                             onClick={(e) => {
                                 e.preventDefault();
                                 if (!isOut) orderNow(product, navigate);
                             }}
-                            className={`flex items-center gap-1.5 w-full justify-center text-[9px] font-extrabold uppercase tracking-[0.15em] px-3 py-2 rounded-sm whitespace-nowrap transition-all duration-200 active:scale-95 ${isOut
-                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                : 'bg-[#534AB7] text-white hover:bg-[#3d3599]  cursor-pointer shadow-md'
-                                }`}
+                            className={`flex items-center gap-1.5 w-full justify-center text-[9px] font-extrabold uppercase tracking-[0.15em] px-3 py-2 rounded-sm whitespace-nowrap transition-all duration-200 active:scale-95 ${
+                                isOut
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                    : 'bg-[#534AB7] text-white hover:bg-[#3d3599] cursor-pointer shadow-md'
+                            }`}
                             aria-label="Order now"
                         >
-                            <Zap className="w-3 h-3 shrink-0 " />
+                            <Zap className="w-3 h-3 shrink-0" />
                             <span>Order Now</span>
                         </button>
 
@@ -144,22 +150,24 @@ export default function ProductCard({ product }: { product: Product }) {
                                 e.preventDefault();
                                 if (!isOut) addToCart(product);
                             }}
-                            className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-sm  transition-all duration-200 active:scale-95 shadow-sm ${isOut
-                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                : 'bg-white text-gray-500 hover:text-white hover:bg-[#46bd81]'
-                                }`}
+                            className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-sm transition-all duration-200 active:scale-95 shadow-sm ${
+                                isOut
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                    : 'bg-white text-gray-500 hover:text-white hover:bg-[#46bd81]'
+                            }`}
                             aria-label="Add to cart"
                         >
-                            <ShoppingCart className="fill-white w-4 h-4 shrink-0 " />
+                            <ShoppingCart className="fill-white w-4 h-4 shrink-0" />
                         </button>
-
                     </div>
                 </div>
             </div>
 
             {/* Info Section */}
-            {/* 2. LINK TO PRODUCT DETAIL PAGE (TEXT) */}
-            <Link to={`/product/${productId}`} className="p-2.5 text-center block hover:opacity-70 transition-opacity">
+            <Link
+                to={`/product/${productId}`}
+                className="p-2.5 text-center block hover:opacity-70 transition-opacity"
+            >
                 <h3 className="text-[10px] text-gray-600 truncate mb-1 uppercase font-serif tracking-tight leading-snug">
                     {product.name}
                 </h3>
@@ -168,11 +176,11 @@ export default function ProductCard({ product }: { product: Product }) {
                 ) : (
                     <div className="flex items-center justify-center gap-1.5">
                         <span className="font-bold text-[12px] text-black font-sans">
-                            ৳{(product.price || 0).toLocaleString()}
+                            ৳{product.price.toLocaleString()}
                         </span>
                         {isSale && product.originalPrice && (
                             <span className="text-[11px] text-gray-400 line-through">
-                                ৳{(product.originalPrice || 0).toLocaleString()}
+                                ৳{product.originalPrice.toLocaleString()}
                             </span>
                         )}
                     </div>

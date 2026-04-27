@@ -8,12 +8,17 @@ import { trackEvent } from '../utils/tracker';
 const StoreContext = createContext<any>(null);
 
 // Normalize cart items coming from MongoDB (productId) → frontend format (_id)
+// FIX: Ensure product IDs are strictly treated as strings
 const normalizeCart = (cartItems: any[]) =>
-  cartItems.map((item: any) => ({
-    ...item,
-    _id: item._id || item.productId,
-    id: item._id || item.productId,
-  }));
+  cartItems.map((item: any) => {
+    const rawPid = item._id || item.productId;
+    const pid = String(rawPid);
+    return {
+      ...item,
+      _id: pid,
+      id: pid,
+    };
+  });
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -31,7 +36,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const token = localStorage.getItem('eloria_token');
 
       if (savedWish) setWishlist(JSON.parse(savedWish));
-      if (savedCart) setCart(JSON.parse(savedCart));
+      if (savedCart) setCart(normalizeCart(JSON.parse(savedCart)));
 
       if (token) {
         fetch(`${API_URL}/api/user/profile`, {
@@ -47,7 +52,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           })
           .then(userData => {
             setUser(userData);
-            if (userData.wishlist) setWishlist(userData.wishlist);
+            if (userData.wishlist) setWishlist(userData.wishlist.map((id: any) => String(id)));
             if (userData.cart) setCart(normalizeCart(userData.cart));
           })
           .catch((err) => {
@@ -88,27 +93,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [wishlist, cart, user, isInitialDbLoaded]);
 
   const toggleWishlist = (productId: string) => {
+    const pid = String(productId);
     setWishlist((prev) => {
-      const isRemoving = prev.includes(productId);
-      if (!isRemoving) trackEvent('add_to_wishlist', { productId });
+      const isRemoving = prev.includes(pid);
+      if (!isRemoving) trackEvent('add_to_wishlist', { productId: pid });
       return isRemoving
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId];
+        ? prev.filter((id) => String(id) !== pid)
+        : [...prev, pid];
     });
   };
 
   const removeFromWishlist = (productId: string) => {
-    setWishlist((prev) => prev.filter((id) => id !== productId));
+    const pid = String(productId);
+    setWishlist((prev) => prev.filter((id) => String(id) !== pid));
   };
 
   const addToCart = (product: any) => {
-    setCart((prev) => {
-      const productId = product._id || product.id;
-      const selectedSize = product.size || 'Standard';
-      const selectedColor = product.color || 'Default';
+    const productId = String(product._id || product.id);
+    const selectedSize = product.size || 'Standard';
+    const selectedColor = product.color || 'Default';
 
+    setCart((prev) => {
       const existingItemIndex = prev.findIndex((item: any) =>
-        (item._id || item.id) === productId &&
+        String(item._id || item.id) === productId &&
         item.size === selectedSize &&
         item.color === selectedColor
       );
@@ -122,13 +129,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         return updatedCart;
       }
 
-      return [...prev, { ...product, quantity: product.quantity || 1, size: selectedSize, color: selectedColor }];
+      return [...prev, { 
+        ...product, 
+        _id: productId,
+        id: productId,
+        quantity: product.quantity || 1, 
+        size: selectedSize, 
+        color: selectedColor 
+      }];
     });
 
     trackEvent('add_to_cart', {
-      productId: product._id || product.id,
-      size: product.size || 'Standard',
-      color: product.color || 'Default',
+      productId,
+      size: selectedSize,
+      color: selectedColor,
       quantity: product.quantity || 1
     });
 
@@ -136,16 +150,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeFromCart = (productId: string, size: string, color: string) => {
+    const pid = String(productId);
     setCart((prev) => prev.filter((item) =>
-      !((item._id || item.id) === productId && item.size === size && item.color === color)
+      !(String(item._id || item.id) === pid && item.size === size && item.color === color)
     ));
   };
 
   const updateCartQuantity = (productId: string, size: string, color: string, newQty: number) => {
-    if (newQty < 1) return removeFromCart(productId, size, color);
+    const pid = String(productId);
+    if (newQty < 1) return removeFromCart(pid, size, color);
     setCart((prev) =>
       prev.map((item) =>
-        (item._id || item.id) === productId && item.size === size && item.color === color
+        String(item._id || item.id) === pid && item.size === size && item.color === color
           ? { ...item, quantity: newQty }
           : item
       )
@@ -163,13 +179,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
    * Caller must pass the react-router navigate function.
    */
   const orderNow = (product: any, navigateFn: (path: string) => void) => {
-    const productId = product._id || product.id;
+    const productId = String(product._id || product.id);
     const selectedSize = product.size || 'Standard';
     const selectedColor = product.color || 'Default';
 
     setCart((prev) => {
       const existingIdx = prev.findIndex((item: any) =>
-        (item._id || item.id) === productId &&
+        String(item._id || item.id) === productId &&
         item.size === selectedSize &&
         item.color === selectedColor
       );
@@ -181,11 +197,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         };
         return updated;
       }
-      return [...prev, { ...product, quantity: product.quantity || 1, size: selectedSize, color: selectedColor }];
+      return [...prev, { 
+        ...product, 
+        _id: productId,
+        id: productId,
+        quantity: product.quantity || 1, 
+        size: selectedSize, 
+        color: selectedColor 
+      }];
     });
 
     trackEvent('add_to_cart', {
-      productId: product._id || product.id,
+      productId,
       size: selectedSize,
       color: selectedColor,
       quantity: product.quantity || 1
@@ -198,7 +221,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
     localStorage.setItem('eloria_token', data.token);
 
-    if (data.user.wishlist) setWishlist(data.user.wishlist);
+    if (data.user.wishlist) setWishlist(data.user.wishlist.map((id: any) => String(id)));
     if (data.user.cart) setCart(normalizeCart(data.user.cart));
 
     localStorage.removeItem('eloria_wishlist');

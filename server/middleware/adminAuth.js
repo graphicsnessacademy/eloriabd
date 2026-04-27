@@ -12,7 +12,7 @@ const adminAuth = (requiredRoles = []) => {
 
             // Verify token
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-            
+
             // Fetch admin user
             const admin = await AdminUser.findById(decoded.id).select('-password');
             if (!admin) {
@@ -26,8 +26,8 @@ const adminAuth = (requiredRoles = []) => {
 
             // Check role authorization if specified
             if (requiredRoles.length > 0 && !requiredRoles.includes(admin.role)) {
-                return res.status(403).json({ 
-                    message: `Access denied. Requires one of: ${requiredRoles.join(', ')}` 
+                return res.status(403).json({
+                    message: `Access denied. Requires one of: ${requiredRoles.join(', ')}`
                 });
             }
 

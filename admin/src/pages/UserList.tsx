@@ -67,7 +67,10 @@ export const UserList: React.FC = () => {
     }, [debouncedSearch, statusFilter, page]);
 
     useEffect(() => {
-        fetchUsers();
+        const load = async () => {
+            await fetchUsers();
+        };
+        load();
     }, [fetchUsers]);
 
 
