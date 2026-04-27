@@ -53,7 +53,7 @@ export default function Hero() {
   const slide = slides[current];
   const nextSlide = slides[(current + 1) % slides.length];
 
-  const getSlideUrl = (s: { bgImage?: string }) =>
+  const getSlideUrl = (s: any) =>
     s.bgImage?.startsWith('http')
       ? s.bgImage
       : 'https://images.unsplash.com/photo-1701252068382-fbe79b926cdc?q=80&w=1600&auto=format&fit=crop';
@@ -141,7 +141,7 @@ export default function Hero() {
         <div className="flex gap-2.5 md:gap-5 overflow-x-auto no-scrollbar px-6 py-4 -my-8 w-full justify-start md:justify-center mb-1">
           {CATEGORIES.map((cat, i) => (
             <Link
-              key={i} 
+              key={i}
               to={`/shop/${cat.slug}`}
               className="w-20 md:w-32 flex-shrink-0 group cursor-pointer"
             >
@@ -162,7 +162,7 @@ export default function Hero() {
             </Link>
           ))}
         </div>
-        
+
       </div>
 
       <style dangerouslySetInnerHTML={{
@@ -186,7 +186,7 @@ export default function Hero() {
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}} />
     </section>
-    
+
   );
 
 }

@@ -1,9 +1,10 @@
 import { useSearchParams } from 'react-router-dom';
 import { useMemo } from 'react';
 import Fuse from 'fuse.js';
-import ProductCard, { Product } from '../components/ProductCard';
+import ProductCard from '../components/ProductCard';
 
-export default function SearchPage({ products }: { products: Product[] }) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function SearchPage({ products }: { products: any[] }) {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
 
@@ -13,8 +14,8 @@ export default function SearchPage({ products }: { products: Product[] }) {
       new Fuse(products, {
         // Fields to search across — add "description" here if your product has one
         keys: [
-          { name: 'name',        weight: 0.6 },  // Product title matters most
-          { name: 'category',    weight: 0.3 },  // Category second
+          { name: 'name', weight: 0.6 },  // Product title matters most
+          { name: 'category', weight: 0.3 },  // Category second
           { name: 'description', weight: 0.1 },  // Description if present
         ],
 
@@ -39,7 +40,7 @@ export default function SearchPage({ products }: { products: Product[] }) {
     const raw = fuse.search(query);
 
     // Sort is already by score (best first). Unwrap the item.
-    return raw.map((r) => r.item);
+    return raw.map((r: any) => r.item);
   }, [fuse, products, query]);
 
   return (
@@ -59,7 +60,7 @@ export default function SearchPage({ products }: { products: Product[] }) {
 
         {results.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {results.map((product) => (
+            {results.map((product: any) => (
               <ProductCard key={product._id || product.id} product={product} />
             ))}
           </div>

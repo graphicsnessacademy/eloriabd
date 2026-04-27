@@ -12,15 +12,7 @@ export const UserDetail: React.FC = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    const [user, setUser] = useState<{
-        name: string;
-        status: string;
-        email: string;
-        phone?: string;
-        createdAt: string;
-        addresses: any[];
-        wishlist: any[];
-    } | null>(null);
+    const [user, setUser] = useState<any>(null);
     const [activity, setActivity] = useState<{ orders: any[], events: any[] }>({ orders: [], events: [] });
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'orders' | 'wishlist' | 'behavior'>('orders');
@@ -62,9 +54,9 @@ export const UserDetail: React.FC = () => {
         );
     }
 
-    const defaultAddress = user.addresses?.find((a: { isDefault: boolean }) => a.isDefault) || user.addresses?.[0];
+    const defaultAddress = user.addresses?.find((a: any) => a.isDefault) || user.addresses?.[0];
 
-    const formatEventAction = (event: { eventType: string; payload?: { path?: string; name?: string } }) => {
+    const formatEventAction = (event: any) => {
         switch (event.eventType) {
             case 'page_view':
                 if (event.payload?.path?.includes('/search')) {
@@ -102,7 +94,7 @@ export const UserDetail: React.FC = () => {
             {/* Profile Summary Card */}
             <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm p-8 flex flex-col md:flex-row items-start md:items-center gap-8 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-[#F2F1FA] rounded-full blur-3xl opacity-50 pointer-events-none group-hover:opacity-100 transition-opacity" />
-                
+
                 <div className="w-24 h-24 rounded-full bg-[#534AB7]/10 text-[#534AB7] border border-[#534AB7]/20 flex items-center justify-center text-3xl font-black shrink-0 relative z-10 shadow-inner">
                     {user.name.charAt(0).toUpperCase()}
                 </div>
@@ -111,11 +103,10 @@ export const UserDetail: React.FC = () => {
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
                         <div>
                             <h2 className="text-2xl font-black text-slate-900">{user.name}</h2>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border mt-2 ${
-                                user.status === 'active' 
-                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border mt-2 ${user.status === 'active'
+                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                                     : 'bg-rose-50 text-rose-600 border-rose-100'
-                            }`}>
+                                }`}>
                                 {user.status === 'active' ? 'Active Account' : 'Suspended Account'}
                             </span>
                         </div>
@@ -126,7 +117,7 @@ export const UserDetail: React.FC = () => {
                             </div>
                             <div className="text-center">
                                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Spent</p>
-                                <p className="text-xl font-bold text-[#534AB7]">৳{activity.orders.reduce((acc: number, o: { total: number }) => acc + o.total, 0).toLocaleString()}</p>
+                                <p className="text-xl font-bold text-[#534AB7]">৳{activity.orders.reduce((acc, o) => acc + o.total, 0).toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
@@ -155,21 +146,21 @@ export const UserDetail: React.FC = () => {
             {/* Tabs System */}
             <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden min-h-[500px]">
                 <div className="flex border-b border-slate-100 bg-slate-50/50">
-                    <button 
+                    <button
                         onClick={() => setActiveTab('orders')}
                         className={`flex items-center gap-2 px-8 py-5 text-sm font-bold tracking-wide uppercase transition-colors relative ${activeTab === 'orders' ? 'text-[#534AB7]' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <ShoppingCart size={16} /> Order History
                         {activeTab === 'orders' && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 w-full h-0.5 bg-[#534AB7]" />}
                     </button>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('wishlist')}
                         className={`flex items-center gap-2 px-8 py-5 text-sm font-bold tracking-wide uppercase transition-colors relative ${activeTab === 'wishlist' ? 'text-[#534AB7]' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <Heart size={16} /> Wishlist
                         {activeTab === 'wishlist' && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 w-full h-0.5 bg-[#534AB7]" />}
                     </button>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('behavior')}
                         className={`flex items-center gap-2 px-8 py-5 text-sm font-bold tracking-wide uppercase transition-colors relative ${activeTab === 'behavior' ? 'text-[#534AB7]' : 'text-slate-500 hover:text-slate-700'}`}
                     >
@@ -181,7 +172,7 @@ export const UserDetail: React.FC = () => {
                 <div className="p-8">
                     <AnimatePresence mode="wait">
                         {activeTab === 'orders' && (
-                            <motion.div 
+                            <motion.div
                                 key="orders"
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -231,7 +222,7 @@ export const UserDetail: React.FC = () => {
                         )}
 
                         {activeTab === 'wishlist' && (
-                            <motion.div 
+                            <motion.div
                                 key="wishlist"
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -244,7 +235,7 @@ export const UserDetail: React.FC = () => {
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                                        {user.wishlist.map((item: { _id: string; image: string; name: string; price: number }) => (
+                                        {user.wishlist.map((item: any) => (
                                             <div key={item._id} className="group relative">
                                                 <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 mb-3 shadow-sm group-hover:shadow-md transition-all">
                                                     <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -259,7 +250,7 @@ export const UserDetail: React.FC = () => {
                         )}
 
                         {activeTab === 'behavior' && (
-                            <motion.div 
+                            <motion.div
                                 key="behavior"
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}

@@ -28,7 +28,7 @@ const COLORS = [
 
 import {
     ShoppingBag, Heart, ShieldCheck, Truck,
-    RotateCcw, ChevronRight, Zap,
+    RotateCcw, ChevronRight, Maximize2, ChevronLeft, Zap,
     Star, MessageSquare, Camera, X, CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,7 +39,7 @@ import CountdownBanner from '../components/CountdownBanner';
 import { ReviewImageUpload, type ImageItem } from '../components/ReviewImageUpload';
 import { useAuth } from '../context/AuthContext';
 
-export interface Product {
+interface Product {
     _id?: string;
     id: string;
     name: string;
@@ -51,7 +51,7 @@ export interface Product {
     isNewProduct?: boolean;
     stock?: number;
     inStock?: boolean;
-    relatedProducts?: Product[];
+    relatedProducts?: any[];
     description?: string;
     variants?: Array<{
         color: string;
@@ -67,12 +67,6 @@ export interface Product {
             sleeve: string;
         }>;
     };
-}
-
-interface CartItem extends Product {
-    quantity: number;
-    size: string;
-    color: string;
 }
 
 interface Review {
@@ -151,27 +145,27 @@ export default function ProductDetailPage({ products }: { products: Product[] })
     }, [product]);
 
     // --- 2. Data Fetching ---
-    const fetchReviewData = useCallback(async () => {
+    const fetchReviewData = async () => {
         if (!id) return;
         try {
             const res = await api.get(`/api/reviews/product/${id}`);
             setReviews(res.data.reviews || []);
             setStats(res.data.stats || null);
-        } catch {
+        } catch (err) {
             setReviews([]);
             setStats(null);
         }
-    }, [id]);
+    };
 
-    const checkEligibility = useCallback(async () => {
+    const checkEligibility = async () => {
         if (!user?._id || !id) return;
         try {
             const res = await api.get(`/api/reviews/check-eligibility/${id}`);
             if (res.data.canReview) setEligibleOrder(res.data.orderId);
-        } catch { setEligibleOrder(null); }
-    }, [user?._id, id]);
+        } catch (err) { setEligibleOrder(null); }
+    };
 
-    const fetchDetailedProduct = useCallback(async () => {
+    const fetchDetailedProduct = async () => {
         if (!id) return;
 
         // Pre-flight: reject non-ObjectId strings before hitting the network
@@ -185,9 +179,8 @@ export default function ProductDetailPage({ products }: { products: Product[] })
             const res = await api.get(`/api/products/${id}`);
             setDetailedProduct(res.data);
             setFetchStatus('found');
-        } catch (err) {
-            const error = err as { response?: { status: number } };
-            const status = error.response?.status;
+        } catch (err: any) {
+            const status = err.response?.status;
             if (status === 404 || status === 400) {
                 // Definitively not found or bad ID — show error screen
                 setFetchStatus('not_found');
@@ -195,7 +188,7 @@ export default function ProductDetailPage({ products }: { products: Product[] })
             // Network errors / 500: stay 'loading' — don't hide a product
             // that might already be visible from the props cache
         }
-    }, [id]);
+    };
 
     useEffect(() => {
         if (id) {
@@ -211,7 +204,7 @@ export default function ProductDetailPage({ products }: { products: Product[] })
             localStorage.setItem('eloria_recent', JSON.stringify(updated));
             setRecentViewedIds(updated.filter((rid: string) => rid !== id));
         }
-    }, [id, user, fetchDetailedProduct, fetchReviewData, checkEligibility]);
+    }, [id, user]);
 
     useEffect(() => {
         // FIX: Set activeImage as soon as heroImageUrl is known — this fires
@@ -239,7 +232,7 @@ export default function ProductDetailPage({ products }: { products: Product[] })
             if (heroImageUrl) setActiveImage(heroImageUrl);
         }
         window.scrollTo(0, 0);
-    }, [detailedProduct, heroImageUrl, activeImage]);
+    }, [detailedProduct, id, heroImageUrl]);
 
     // --- 3. Derived Lists ---
     const recentProducts = useMemo(
@@ -292,6 +285,9 @@ export default function ProductDetailPage({ products }: { products: Product[] })
     if (!product) return null;
 
     const isWishlisted = wishlist.includes(product._id || product.id);
+    const discount = product.originalPrice
+        ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+        : 0;
 
     // Real-time SKU-level stock — falls back to product-level inStock while detailedProduct loads
     const currentVariant = detailedProduct?.variants?.find(
@@ -331,7 +327,7 @@ export default function ProductDetailPage({ products }: { products: Product[] })
             setEligibleOrder(null);
             fetchReviewData();
             alert("আপনার রিভিউটি জমা হয়েছে। অনুমোদনের পর এটি দেখা যাবে।");
-        } catch {
+        } catch (err) {
             alert("রিভিউ জমা দিতে সমস্যা হয়েছে।");
         } finally {
             setIsSubmitting(false);
@@ -581,7 +577,7 @@ export default function ProductDetailPage({ products }: { products: Product[] })
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
                                     onClick={() => {
-                                        const inCart = cart.find((item: CartItem) =>
+                                        const inCart = cart.find((item: any) =>
                                             (item._id || item.id) === (product._id || product.id) &&
                                             item.size === selectedSize &&
                                             item.color === selectedColor
@@ -604,7 +600,7 @@ export default function ProductDetailPage({ products }: { products: Product[] })
                                 whileHover={isOut ? {} : { scale: 1.02 }}
                                 whileTap={isOut ? {} : { scale: 0.98 }}
                                 onClick={() => {
-                                    const inCart = cart.find((item: CartItem) =>
+                                    const inCart = cart.find((item: any) =>
                                         (item._id || item.id) === (product._id || product.id) &&
                                         item.size === selectedSize &&
                                         item.color === selectedColor

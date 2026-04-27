@@ -18,7 +18,7 @@ export const ReviewImageUpload = ({ value, onChange, maxFiles = 3 }: Props) => {
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
-    
+
     setUploading(true);
     const formData = new FormData();
     Array.from(e.target.files).forEach(file => formData.append('images', file));
@@ -27,7 +27,7 @@ export const ReviewImageUpload = ({ value, onChange, maxFiles = 3 }: Props) => {
       const res = await api.post('/api/upload', formData);
       // Map back to the expected structure
       onChange([...value, ...res.data]);
-    } catch {
+    } catch (err) {
       alert("Image upload failed. Please ensure file is under 5MB.");
     } finally {
       setUploading(false);
@@ -43,7 +43,7 @@ export const ReviewImageUpload = ({ value, onChange, maxFiles = 3 }: Props) => {
       {value.map((img) => (
         <div key={img.url} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-100 shadow-sm">
           <img src={img.url} className="w-full h-full object-cover" alt="Review" />
-          <button 
+          <button
             type="button"
             onClick={() => removeImage(img.url)}
             className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors"

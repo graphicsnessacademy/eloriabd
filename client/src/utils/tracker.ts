@@ -20,7 +20,7 @@ export const getSessionId = (): string => {
     return sessionId;
 };
 
-export const trackEvent = async (eventType: string, payload: Record<string, unknown> = {}) => {
+export const trackEvent = async (eventType: string, payload: any = {}) => {
     try {
         const visitorId = getVisitorId();
         const sessionId = getSessionId();
@@ -33,7 +33,7 @@ export const trackEvent = async (eventType: string, payload: Record<string, unkn
                 const parsed = JSON.parse(userInfo);
                 if (parsed._id) userId = parsed._id;
             }
-        } catch {
+        } catch (e) {
             // ignore
         }
 
@@ -44,7 +44,7 @@ export const trackEvent = async (eventType: string, payload: Record<string, unkn
             eventType,
             payload
         });
-    } catch (error) {
+    } catch (error: any) {
         // Silent fail: warn instead of throwing to prevent analytics failures from slowing UX
         console.warn('Failed to track event:', error);
     }
@@ -54,7 +54,7 @@ export const mergeUser = async (userId: string) => {
     try {
         const visitorId = getVisitorId();
         await api.post('/api/events/merge', { visitorId, userId });
-    } catch (error) {
+    } catch (error: any) {
         // Silent fail: warn instead of throwing to prevent analytics failures from slowing UX
         console.warn('Failed to merge identity:', error);
     }

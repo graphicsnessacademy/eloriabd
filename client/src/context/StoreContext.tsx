@@ -22,8 +22,8 @@ const normalizeCart = (cartItems: any[]) =>
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [wishlist, setWishlist] = useState<string[]>([]);
-  const [cart, setCart] = useState<unknown[]>([]);
-  const [user, setUser] = useState<unknown>(null);
+  const [cart, setCart] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);

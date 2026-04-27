@@ -21,7 +21,7 @@ interface User {
 
 export const UserList: React.FC = () => {
     const navigate = useNavigate();
-    
+
     const [users, setUsers] = useState<User[]>([]);
     const [total, setTotal] = useState(0);
     const [pages, setPages] = useState(1);
@@ -67,10 +67,7 @@ export const UserList: React.FC = () => {
     }, [debouncedSearch, statusFilter, page]);
 
     useEffect(() => {
-        const load = async () => {
-            await fetchUsers();
-        };
-        load();
+        fetchUsers();
     }, [fetchUsers]);
 
 
@@ -100,7 +97,7 @@ export const UserList: React.FC = () => {
                     <h1 className="text-2xl font-bold text-slate-800">User Management</h1>
                     <p className="text-sm text-slate-500 mt-1">Monitor and manage your customer accounts</p>
                 </div>
-                <ExportButton 
+                <ExportButton
                     endpoint={`/api/admin/users/export?search=${debouncedSearch}&status=${statusFilter}`}
                     filename={`eloria_users_${new Date().toISOString().split('T')[0]}.csv`}
                     label="Export CSV"
@@ -112,19 +109,19 @@ export const UserList: React.FC = () => {
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center gap-4 justify-between">
                 <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input 
-                        type="text" 
-                        placeholder="Search by name, email or phone..." 
+                    <input
+                        type="text"
+                        placeholder="Search by name, email or phone..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#534AB7]/20 focus:border-[#534AB7] text-sm"
                     />
                 </div>
-                
+
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     <div className="relative">
                         <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <select 
+                        <select
                             value={statusFilter}
                             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                             className="pl-9 pr-8 py-2 border border-slate-200 rounded-lg appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-[#534AB7]/20 focus:border-[#534AB7] text-sm"
@@ -200,24 +197,23 @@ export const UserList: React.FC = () => {
                                             <span className="font-mono font-bold text-slate-900">৳{(user.totalSpent || 0).toLocaleString()}</span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border ${
-                                                user.status === 'active' 
-                                                    ? 'bg-[#534AB7]/10 text-[#534AB7] border-[#534AB7]/20' 
+                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border ${user.status === 'active'
+                                                    ? 'bg-[#534AB7]/10 text-[#534AB7] border-[#534AB7]/20'
                                                     : 'bg-rose-50 text-rose-600 border-rose-100'
-                                            }`}>
+                                                }`}>
                                                 {user.status === 'active' ? 'Active' : 'Suspended'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end space-x-2">
-                                                <button 
+                                                <button
                                                     onClick={() => navigate(`/admin/users/${user._id}`)}
                                                     className="p-1.5 text-slate-400 hover:text-[#534AB7] hover:bg-[#534AB7]/10 rounded transition"
                                                     title="View Details"
                                                 >
                                                     <SlidersHorizontal className="w-4 h-4" />
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => { setTargetUser(user); setSuspendModalOpen(true); }}
                                                     className={`p-1.5 rounded transition ${user.status === 'active' ? 'text-slate-400 hover:text-rose-600 hover:bg-rose-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'}`}
                                                     title={user.status === 'active' ? 'Suspend User' : 'Unsuspend User'}
@@ -240,7 +236,7 @@ export const UserList: React.FC = () => {
                             Showing {(page - 1) * 10 + 1} to {Math.min(page * 10, total)} of {total} users
                         </span>
                         <div className="flex items-center space-x-1">
-                            <button 
+                            <button
                                 onClick={() => setPage(Math.max(1, page - 1))}
                                 disabled={page === 1}
                                 className="p-1 border border-slate-200 rounded text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
@@ -251,17 +247,16 @@ export const UserList: React.FC = () => {
                                 let pageNum = page - 2 + i;
                                 if (page <= 3) pageNum = i + 1;
                                 if (page >= pages - 2) pageNum = pages - 4 + i;
-                                
+
                                 if (pageNum > 0 && pageNum <= pages) {
                                     return (
                                         <button
                                             key={pageNum}
                                             onClick={() => setPage(pageNum)}
-                                            className={`w-7 h-7 rounded text-xs font-medium transition ${
-                                                page === pageNum 
-                                                    ? 'bg-[#534AB7] text-white' 
+                                            className={`w-7 h-7 rounded text-xs font-medium transition ${page === pageNum
+                                                    ? 'bg-[#534AB7] text-white'
                                                     : 'text-slate-600 hover:bg-slate-100'
-                                            }`}
+                                                }`}
                                         >
                                             {pageNum}
                                         </button>
@@ -269,7 +264,7 @@ export const UserList: React.FC = () => {
                                 }
                                 return null;
                             })}
-                            <button 
+                            <button
                                 onClick={() => setPage(Math.min(pages, page + 1))}
                                 disabled={page === pages}
                                 className="p-1 border border-slate-200 rounded text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
@@ -296,14 +291,14 @@ export const UserList: React.FC = () => {
                             {targetUser.status === 'active' ? ' They will no longer be able to log in or make purchases.' : ' They will regain full access to their account.'}
                         </p>
                         <div className="flex space-x-3">
-                            <button 
+                            <button
                                 onClick={() => { setSuspendModalOpen(false); setTargetUser(null); }}
                                 disabled={isUpdating}
                                 className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition"
                             >
                                 Cancel
                             </button>
-                            <button 
+                            <button
                                 onClick={toggleStatus}
                                 disabled={isUpdating}
                                 className={`flex-1 px-4 py-2 text-white font-medium rounded-lg transition flex justify-center items-center ${targetUser.status === 'active' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}

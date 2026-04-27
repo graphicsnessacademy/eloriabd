@@ -9,7 +9,7 @@ import { ShoppingCart, ArrowRight, Zap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 
-export interface Product {
+interface Product {
     _id?: string;
     id?: string;
     name: string;
@@ -38,9 +38,9 @@ export default function ProductCard({ product }: { product: Product }) {
     }
     heroImageUrl = heroImageUrl || 'https://via.placeholder.com/400?text=No+Image';
 
-    const isNew      = product.isNewProduct || product.category === 'New Arrival';
-    const isOut      = product.inStock === false || product.stock === 0;
-    const isSale     = !isOut && !!(product.originalPrice && product.originalPrice > product.price);
+    const isNew = product.isNewProduct || product.category === 'New Arrival';
+    const isOut = product.inStock === false || product.stock === 0;
+    const isSale = !isOut && !!(product.originalPrice && product.originalPrice > product.price);
     const discountPct = isSale
         ? Math.round(((product.originalPrice! - product.price) / product.originalPrice!) * 100)
         : 0;
@@ -89,9 +89,8 @@ export default function ProductCard({ product }: { product: Product }) {
                         loading="lazy"
                         width={400}
                         height={400}
-                        className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${
-                            isOut ? 'grayscale opacity-60' : ''
-                        }`}
+                        className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${isOut ? 'grayscale opacity-60' : ''
+                            }`}
                         referrerPolicy="no-referrer"
                     />
                 </Link>
@@ -133,11 +132,10 @@ export default function ProductCard({ product }: { product: Product }) {
                                 e.preventDefault();
                                 if (!isOut) orderNow(product, navigate);
                             }}
-                            className={`flex items-center gap-1.5 w-full justify-center text-[9px] font-extrabold uppercase tracking-[0.15em] px-3 py-2 rounded-sm whitespace-nowrap transition-all duration-200 active:scale-95 ${
-                                isOut
+                            className={`flex items-center gap-1.5 w-full justify-center text-[9px] font-extrabold uppercase tracking-[0.15em] px-3 py-2 rounded-sm whitespace-nowrap transition-all duration-200 active:scale-95 ${isOut
                                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                     : 'bg-[#534AB7] text-white hover:bg-[#3d3599] cursor-pointer shadow-md'
-                            }`}
+                                }`}
                             aria-label="Order now"
                         >
                             <Zap className="w-3 h-3 shrink-0" />
@@ -150,11 +148,10 @@ export default function ProductCard({ product }: { product: Product }) {
                                 e.preventDefault();
                                 if (!isOut) addToCart(product);
                             }}
-                            className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-sm transition-all duration-200 active:scale-95 shadow-sm ${
-                                isOut
+                            className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-sm transition-all duration-200 active:scale-95 shadow-sm ${isOut
                                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                     : 'bg-white text-gray-500 hover:text-white hover:bg-[#46bd81]'
-                            }`}
+                                }`}
                             aria-label="Add to cart"
                         >
                             <ShoppingCart className="fill-white w-4 h-4 shrink-0" />

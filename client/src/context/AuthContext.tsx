@@ -8,7 +8,7 @@ interface User {
     name: string;
     email: string;
     phone?: string;
-    addresses?: unknown[];
+    addresses?: any[];
 }
 
 interface AuthContextType {
@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const res = await api.get('/api/user/profile');
                 setUser(res.data);
                 mergeUser(res.data._id);
-            } catch {
+            } catch (err) {
                 console.error("Auth session expired or invalid");
                 localStorage.removeItem('eloria_token');
                 setUser(null);

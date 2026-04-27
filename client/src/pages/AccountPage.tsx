@@ -42,7 +42,8 @@ export interface UserProfile {
     phone: string;
     addresses: Address[];
     wishlist: string[];
-    cart: unknown[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    cart: any[];
 }
 
 export interface ProductItem {
@@ -51,7 +52,7 @@ export interface ProductItem {
     name: string;
     price: number;
     image: string;
-    [key: string]: unknown;
+    [key: string]: any;
 }
 
 // ─────────────────────────────────────────────
@@ -109,12 +110,12 @@ function DashboardTab({ user, onTabChange }: { user: UserProfile | null; onTabCh
             }
         };
         fetchOrderCount();
-    }, [user?._id, user?.id, user]);
+    }, [user?._id, user?.id]);
 
     const stats = [
-        { label: 'Cart Items', value: cart.length,    tab: 'cart'     as Tab, icon: ShoppingCart, color: 'bg-[#f0eeff] text-[#534AB7]' },
-        { label: 'Wishlist',   value: wishlist.length, tab: 'wishlist' as Tab, icon: Heart,         color: 'bg-[#fff0f5] text-[#D4537E]' },
-        { label: 'Orders',     value: orderCount,      tab: 'orders'   as Tab, icon: Package,       color: 'bg-[#f0f7ff] text-[#3b82f6]' },
+        { label: 'Cart Items', value: cart.length, tab: 'cart' as Tab, icon: ShoppingCart, color: 'bg-[#f0eeff] text-[#534AB7]' },
+        { label: 'Wishlist', value: wishlist.length, tab: 'wishlist' as Tab, icon: Heart, color: 'bg-[#fff0f5] text-[#D4537E]' },
+        { label: 'Orders', value: orderCount, tab: 'orders' as Tab, icon: Package, color: 'bg-[#f0f7ff] text-[#3b82f6]' },
     ];
 
     const handleLogout = () => {
@@ -245,9 +246,9 @@ function DashboardTab({ user, onTabChange }: { user: UserProfile | null; onTabCh
                 <SectionTitle>Quick Access</SectionTitle>
                 <div className="space-y-1">
                     {[
-                        { label: 'My Cart',         tab: 'cart'     as Tab, icon: ShoppingCart, desc: `${cart.length} items` },
-                        { label: 'My Wishlist',     tab: 'wishlist' as Tab, icon: Heart,         desc: `${wishlist.length} saved` },
-                        { label: 'Saved Addresses', tab: 'address'  as Tab, icon: MapPin,        desc: 'Manage delivery addresses' },
+                        { label: 'My Cart', tab: 'cart' as Tab, icon: ShoppingCart, desc: `${cart.length} items` },
+                        { label: 'My Wishlist', tab: 'wishlist' as Tab, icon: Heart, desc: `${wishlist.length} saved` },
+                        { label: 'Saved Addresses', tab: 'address' as Tab, icon: MapPin, desc: 'Manage delivery addresses' },
                     ].map(({ label, tab, icon: Icon, desc }) => (
                         <button
                             key={tab}
@@ -508,7 +509,7 @@ function CartTab() {
     const { cart, removeFromCart, updateCartQuantity, clearCart } = useStore();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const subtotal   = cart.reduce((sum: number, item: any) => sum + item.price * (item.quantity || 1), 0);
+    const subtotal = cart.reduce((sum: number, item: any) => sum + item.price * (item.quantity || 1), 0);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const totalItems = cart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
 
@@ -653,7 +654,7 @@ function WishlistTab({ products }: { products: ProductItem[] }) {
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {wishlisted.map((product: any) => {
                     const pid = product._id || product.id;
-                    const isOut  = product.inStock === false || product.stock === 0;
+                    const isOut = product.inStock === false || product.stock === 0;
                     const isSale = !isOut && product.originalPrice && product.originalPrice > product.price;
                     return (
                         <div key={pid} className="group border border-gray-100 rounded-sm overflow-hidden hover:shadow-sm transition-all bg-white">
@@ -687,11 +688,10 @@ function WishlistTab({ products }: { products: ProductItem[] }) {
                                 <button
                                     disabled={isOut}
                                     onClick={() => !isOut && addToCart(product)}
-                                    className={`mt-2 w-full py-2 text-[9px] font-bold uppercase tracking-widest rounded-sm transition-all active:scale-[0.98] ${
-                                        isOut
+                                    className={`mt-2 w-full py-2 text-[9px] font-bold uppercase tracking-widest rounded-sm transition-all active:scale-[0.98] ${isOut
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             : 'bg-[#534AB7] text-white hover:bg-[#3d3599]'
-                                    }`}
+                                        }`}
                                 >
                                     {isOut ? 'Out of Stock' : 'Add to Cart'}
                                 </button>
@@ -717,9 +717,9 @@ function OrdersTab({ user }: { user: UserProfile | null }) {
 
         const fetchOrders = async () => {
             try {
-                const token  = localStorage.getItem('eloria_token');
+                const token = localStorage.getItem('eloria_token');
                 const userId = user._id || user.id;
-                const res    = await fetch(`${API_URL}/api/orders/user/${userId}`, {
+                const res = await fetch(`${API_URL}/api/orders/user/${userId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -733,7 +733,7 @@ function OrdersTab({ user }: { user: UserProfile | null }) {
             }
         };
         fetchOrders();
-    }, [user?._id, user?.id, user]);
+    }, [user?._id, user?.id]);
 
     if (loading) {
         return (
@@ -764,14 +764,14 @@ function OrdersTab({ user }: { user: UserProfile | null }) {
         const s = status || 'Pending';
         switch (s) {
             case 'Delivered':
-            case 'Completed':   return 'bg-green-50 text-green-700 border-green-200';
+            case 'Completed': return 'bg-green-50 text-green-700 border-green-200';
             case 'Cancelled':
-            case 'Returned':    return 'bg-[#D4537E]/10 text-[#D4537E] border-[#D4537E]/20';
-            case 'Pending':     return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-            case 'Confirmed':   return 'bg-blue-50 text-blue-700 border-blue-200';
-            case 'Packaged':    return 'bg-purple-50 text-purple-700 border-purple-200';
-            case 'On Courier':  return 'bg-indigo-50 text-indigo-700 border-indigo-200';
-            default:            return 'bg-gray-50 text-gray-700 border-gray-200';
+            case 'Returned': return 'bg-[#D4537E]/10 text-[#D4537E] border-[#D4537E]/20';
+            case 'Pending': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+            case 'Confirmed': return 'bg-blue-50 text-blue-700 border-blue-200';
+            case 'Packaged': return 'bg-purple-50 text-purple-700 border-purple-200';
+            case 'On Courier': return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+            default: return 'bg-gray-50 text-gray-700 border-gray-200';
         }
     };
 
@@ -821,7 +821,7 @@ function OrdersTab({ user }: { user: UserProfile | null }) {
                                     || item.product?._id
                                     || item.product
                                     || item._id;
-                                const pid        = rawPid ? String(rawPid) : null;
+                                const pid = rawPid ? String(rawPid) : null;
                                 const isValidPid = pid && /^[a-f\d]{24}$/i.test(pid);
 
                                 return (
@@ -901,10 +901,10 @@ export default function AccountPage({ products = [] }: AccountPageProps) {
 
     const tabs: { id: Tab; label: string; icon: React.ElementType; badge?: number }[] = [
         { id: 'dashboard', label: 'Dashboard', icon: User },
-        { id: 'orders',    label: 'Orders',    icon: Package },
-        { id: 'address',   label: 'Address',   icon: MapPin },
-        { id: 'cart',      label: 'Cart',      icon: ShoppingCart, badge: cart.length },
-        { id: 'wishlist',  label: 'Wishlist',  icon: Heart,        badge: wishlist.length },
+        { id: 'orders', label: 'Orders', icon: Package },
+        { id: 'address', label: 'Address', icon: MapPin },
+        { id: 'cart', label: 'Cart', icon: ShoppingCart, badge: cart.length },
+        { id: 'wishlist', label: 'Wishlist', icon: Heart, badge: wishlist.length },
     ];
 
     return (
@@ -948,20 +948,18 @@ export default function AccountPage({ products = [] }: AccountPageProps) {
                             <button
                                 key={id}
                                 onClick={() => setActiveTab(id)}
-                                className={`w-full flex items-center justify-between px-4 py-3.5 text-left transition-all border-l-2 ${
-                                    activeTab === id
+                                className={`w-full flex items-center justify-between px-4 py-3.5 text-left transition-all border-l-2 ${activeTab === id
                                         ? 'border-l-[#534AB7] bg-[#534AB7]/5 text-[#534AB7]'
                                         : 'border-l-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-                                }`}
+                                    }`}
                             >
                                 <div className="flex items-center gap-3">
                                     <Icon className="w-3.5 h-3.5" />
                                     <span className="text-[10px] font-bold uppercase tracking-[0.2em]">{label}</span>
                                 </div>
                                 {badge !== undefined && badge > 0 && (
-                                    <span className={`text-[9px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center ${
-                                        activeTab === id ? 'bg-[#534AB7] text-white' : 'bg-gray-100 text-gray-500'
-                                    }`}>
+                                    <span className={`text-[9px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center ${activeTab === id ? 'bg-[#534AB7] text-white' : 'bg-gray-100 text-gray-500'
+                                        }`}>
                                         {badge}
                                     </span>
                                 )}
@@ -980,10 +978,10 @@ export default function AccountPage({ products = [] }: AccountPageProps) {
                 {/* Content Panel */}
                 <main className="flex-1 bg-white border border-gray-100 rounded-sm p-5 md:p-7 min-h-[500px]">
                     {activeTab === 'dashboard' && <DashboardTab user={user} onTabChange={setActiveTab} />}
-                    {activeTab === 'orders'    && <OrdersTab user={user} />}
-                    {activeTab === 'address'   && <AddressTab />}
-                    {activeTab === 'cart'      && <CartTab />}
-                    {activeTab === 'wishlist'  && <WishlistPage products={products} />}
+                    {activeTab === 'orders' && <OrdersTab user={user} />}
+                    {activeTab === 'address' && <AddressTab />}
+                    {activeTab === 'cart' && <CartTab />}
+                    {activeTab === 'wishlist' && <WishlistPage products={products} />}
                 </main>
             </div>
         </div>
