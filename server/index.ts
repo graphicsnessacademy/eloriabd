@@ -51,15 +51,31 @@ app.use(cookieParser());
 let cachedDb: typeof mongoose | null = null;
 const connectDB = async () => {
   if (cachedDb) return cachedDb;
-  const db = await mongoose.connect(process.env.MONGODB_URI!, { serverSelectionTimeoutMS: 5000 });
+  // Increased timeout for Vercel cold starts
+  const db = await mongoose.connect(process.env.MONGODB_URI!, { 
+    serverSelectionTimeoutMS: 10000,
+    connectTimeoutMS: 10000 
+  });
   cachedDb = db;
-  await seedPages(); // Seed default content pages once connected
   return db;
 };
 
+// Seeding logic moved to a separate check to prevent request blocking
+let seeded = false;
+
 app.use(async (req: Request, res: Response, next: NextFunction) => {
-  try { await connectDB(); next(); }
-  catch (err: any) { res.status(500).json({ error: "Database connection failed", details: err.message }); }
+  try { 
+    await connectDB(); 
+    if (!seeded && req.path === '/api/products') {
+        seeded = true;
+        seedPages().catch(err => console.error('Seed error:', err));
+    }
+    next(); 
+  }
+  catch (err: any) { 
+    console.error('DB Connection Middleware Error:', err.message);
+    res.status(500).json({ error: "Database connection failed", details: err.message }); 
+  }
 });
 
 const authRoutes = require('./routes/authRoutes');
@@ -103,11 +119,14 @@ app.use('/api/admin', adminRoutes);
 
 app.get('/', (_req: Request, res: Response) => res.send('ELORIA API V2 - REVIEWS ACTIVE'));
 
-initAnalyticsCron();
-
-export default app;
-
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+  // Only run local cron in development
+  initAnalyticsCron();
+} else if (!process.env.VERCEL) {
+  // Run cron on production only if NOT on Vercel (e.g. VPS)
+  initAnalyticsCron();
 }
+
+export default app;
