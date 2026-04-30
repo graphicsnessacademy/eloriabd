@@ -129,12 +129,6 @@ userSchema.pre('save', async function () {
     }
 });
 
-// ESM Export
+// Unified Export for both ESM and CJS compatibility
 export const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema);
 export default User;
-
-// CJS Export for hybrid route compatibility
-if (typeof module !== 'undefined') {
-    module.exports = User;
-    module.exports.User = User;
-}

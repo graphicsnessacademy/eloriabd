@@ -35,10 +35,11 @@ const app = express();
 
 app.use(cors({
   origin: [
+    "https://eloriabd.vercel.app",
     "https://eloriabd-shop.vercel.app",
-    "https://eloriabd-admin.vercel.app", // add your deployed admin URL here too
+    "https://eloriabd-admin.vercel.app",
     "http://localhost:5173",
-    "http://localhost:5174",  // admin dev server
+    "http://localhost:5174",
   ],
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   credentials: true

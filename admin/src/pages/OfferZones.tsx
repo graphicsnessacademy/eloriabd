@@ -83,7 +83,7 @@ export const OfferZones = () => {
       setSuccess('All offer zones saved!');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Save failed. Check console.';
+      const msg = err?.response?.data?.message || 'Save failed. Check console.';    
       setError(msg);
       console.error('Save error:', err?.response?.data || err);
     } finally {

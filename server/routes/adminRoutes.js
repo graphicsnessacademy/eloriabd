@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const AdminUser = require('../models/AdminUser');
-const Order = require('../models/Order').default;
+const Order = require('../models/Order').default || require('../models/Order');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const adminAuth = require('../middleware/adminAuth');
@@ -272,7 +272,7 @@ router.patch('/products/:id/toggle-label', adminAuth(['super_admin', 'editor']),
             return res.status(400).json({ message: 'Invalid field' });
         }
         
-        const product = await Product.findByIdAndUpdate(req.params.id, { [field]: value }, { new: true });
+        const product = await Product.findByIdAndUpdate(req.params.id, { [field]: value }, { returnDocument: 'after' });
         if (!product) return res.status(404).json({ message: 'Product not found' });
         
         res.status(200).json({ message: 'Label updated successfully', product });
@@ -292,7 +292,7 @@ router.delete('/products/:id', adminAuth(['super_admin', 'editor']), async (req,
             if (!product) return res.status(404).json({ message: 'Product not found' });
             return res.status(200).json({ message: 'Product permanently deleted' });
         } else {
-            const product = await Product.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
+            const product = await Product.findByIdAndUpdate(req.params.id, { isDeleted: true }, { returnDocument: 'after' });
             if (!product) return res.status(404).json({ message: 'Product not found' });
             return res.status(200).json({ message: 'Product deleted (soft)' });
         }
@@ -325,7 +325,8 @@ router.get('/stats', adminAuth(), async (req, res) => {
 });
 
 // GET /api/admin/users
-const User = require('../models/User');
+const User = require('../models/User').default;
+
 router.get('/users', adminAuth(['super_admin']), async (req, res) => {
     try {
         const { search = '', page = 1, limit = 20 } = req.query;

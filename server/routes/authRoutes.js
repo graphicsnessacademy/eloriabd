@@ -16,8 +16,8 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const { Resend } = require('resend');
 
-const User = require('../models/User');
-const OtpStore = require('../models/OtpStore');
+const User = require('../models/User').default;
+const OtpStore = require('../models/OtpStore').default || require('../models/OtpStore');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -291,7 +291,7 @@ router.post('/login', async (req, res) => {
         const updatedUser = await User.findByIdAndUpdate(
             user._id,
             { $set: { wishlist: mergedWishlist, cart: mergedCart, lastLogin: new Date() } },
-            { returnDocument: 'after', runValidators: false }  // ← correct
+            { returnDocument: 'after', runValidators: false }
         );
         res.json({
             token: signToken(user._id),

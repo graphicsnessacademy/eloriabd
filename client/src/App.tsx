@@ -42,7 +42,7 @@ export default function App() {
       const cached = sessionStorage.getItem(CACHE_KEY);
       if (cached) {
         const { data, ts } = JSON.parse(cached);
-        if (Date.now() - ts < CACHE_TTL) return data;
+        if (Date.now() - ts < CACHE_TTL && Array.isArray(data) && data.length > 0) return data;
       }
     } catch {
       // ignore parse errors
@@ -55,8 +55,8 @@ export default function App() {
     try {
       const cached = sessionStorage.getItem(CACHE_KEY);
       if (cached) {
-        const { ts } = JSON.parse(cached);
-        if (Date.now() - ts < CACHE_TTL) return; // cache hit — no fetch needed
+        const { data, ts } = JSON.parse(cached);
+        if (Date.now() - ts < CACHE_TTL && Array.isArray(data) && data.length > 0) return; // cache hit — no fetch needed
       }
     } catch { /* ignore */ }
 
