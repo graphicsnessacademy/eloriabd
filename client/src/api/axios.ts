@@ -2,7 +2,7 @@ import axios, { InternalAxiosRequestConfig } from 'axios';
 
 // Change this to your live Vercel URL if different
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://eloriabd.vercel.app'),
+  baseURL: 'https://eloriabd.vercel.app', 
   withCredentials: true,
 });
 

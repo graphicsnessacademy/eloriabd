@@ -20,9 +20,9 @@ const mongoose = require('mongoose');
 const { Resend } = require('resend');
 
 // Models
-const User = require('../models/User').default;
+const User = require('../models/User');
 const Order = require('../models/Order').default || require('../models/Order');
-const OtpStore = require('../models/OtpStore').default || require('../models/OtpStore');
+const OtpStore = require('../models/OtpStore');
 const Coupon = require('../models/Coupon').default || require('../models/Coupon');
 
 // Initialize Resend with API Key from .env
