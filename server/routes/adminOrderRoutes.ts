@@ -49,8 +49,29 @@ router.get('/', adminAuth(['editor', 'super_admin']), async (req: Request, res: 
             { $group: { _id: "$status", count: { $sum: 1 } } }
         ]);
 
+        // Shape orders for admin list — include delivery location + coupon for display
+        const shapedOrders = orders.map((o: any) => ({
+            _id:         o._id,
+            orderNumber: o.orderNumber,
+            customer:    o.customer,
+            items:       o.items?.length || 0,
+            subtotal:    o.subtotal,
+            shippingCost: o.shippingCost,
+            couponCode:  o.couponCode || '',
+            couponDiscount: o.couponDiscount || 0,
+            total:       o.total,
+            status:      o.status,
+            createdAt:   o.createdAt,
+            delivery: {
+                district: o.shippingAddress?.district || '',
+                thana:    o.shippingAddress?.thana    || '',
+                area:     o.shippingAddress?.area     || '',
+                address:  o.shippingAddress?.address  || '',
+            }
+        }));
+
         res.json({
-            orders,
+            orders: shapedOrders,
             total,
             page: Number(page),
             pages: Math.ceil(total / Number(limit)),

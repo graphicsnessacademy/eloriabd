@@ -27,6 +27,7 @@ export interface IOrder extends Document {
   paymentMethod: string;
   subtotal: number;
   shippingCost: number;
+  couponCode?: string;
   couponDiscount: number;
   total: number;
   totalAmount?: number;
@@ -83,11 +84,14 @@ const OrderSchema: Schema = new Schema({
     quantity:  { type: Number, default: 1 }
   }],
 
+  // shippingAddress stores all address fields including district, thana, area
+  // (typed as Object so nested Bangladeshi location fields are flexible)
   shippingAddress: { type: Object, required: true },
   paymentMethod:   { type: String, default: 'Cash on Delivery' },
 
   subtotal:       { type: Number, default: 0 },
   shippingCost:   { type: Number, default: 0 },
+  couponCode:     { type: String, default: '' },
   couponDiscount: { type: Number, default: 0 },
   total:          { type: Number, required: true },
   totalAmount:    { type: Number },

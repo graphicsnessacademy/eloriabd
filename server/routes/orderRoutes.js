@@ -54,9 +54,17 @@ router.post('/', auth, async (req, res) => {
         const calculatedSubtotal = items.reduce(
             (sum, item) => sum + (item.price * (item.quantity || 1)), 0
         );
-        const discount   = Number(couponDiscount) || 0;
-        const finalTotal = Number(totalAmount) || (calculatedSubtotal + 60 - discount);
-        const shippingCost = finalTotal - calculatedSubtotal + discount;
+        const discount = Number(couponDiscount) || 0;
+
+        // Shipping: FREE only for Sylhet district + Sylhet Sadar thana
+        const isFreeShipping = (
+            shippingAddress?.district === 'সিলেট' &&
+            shippingAddress?.thana    === 'সিলেট সদর'
+        );
+        const shippingCost = isFreeShipping ? 0 : 60;
+
+        // Always recalculate server-side — do not trust client totalAmount
+        const finalTotal = Math.max(0, calculatedSubtotal + shippingCost - discount);
 
         // 4. Sanitize items — extract productId from any shape the client may send
         const sanitizedItems = items.map(item => {
@@ -90,7 +98,8 @@ router.post('/', auth, async (req, res) => {
             shippingAddress,
             paymentMethod:  paymentMethod || 'Cash on Delivery',
             subtotal:       calculatedSubtotal,
-            shippingCost:   shippingCost > 0 ? shippingCost : 0,
+            shippingCost:   shippingCost,
+            couponCode:     couponCode ? couponCode.toUpperCase().trim() : '',
             couponDiscount: discount,
             total:          finalTotal,
             status:         'Pending'

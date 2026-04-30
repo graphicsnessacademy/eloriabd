@@ -11,12 +11,15 @@ const router = express.Router();
  * All error messages are in Bangla.
  */
 router.post('/validate', async (req: Request, res: Response) => {
-  const { code, orderTotal, userId } = req.body;
+  const { code, orderTotal, subtotal: subtotalParam, userId } = req.body;
+
+  // Accept either "orderTotal" or "subtotal" — CheckoutPage may send either
+  const rawTotal = Number(orderTotal ?? subtotalParam ?? 0);
 
   if (!code || !code.trim()) {
     return res.status(400).json({ valid: false, message: 'কুপন কোড দিন।' });
   }
-  if (!orderTotal || orderTotal <= 0) {
+  if (!rawTotal || isNaN(rawTotal) || rawTotal <= 0) {
     return res.status(400).json({ valid: false, message: 'অর্ডারের মূল্য অবৈধ।' });
   }
 
@@ -35,7 +38,7 @@ router.post('/validate', async (req: Request, res: Response) => {
     if (coupon.usageCount >= coupon.usageLimit) {
       return res.status(400).json({ valid: false, message: 'এই কুপনের ব্যবহারের সীমা শেষ।' });
     }
-    if (orderTotal < coupon.minOrderValue) {
+    if (rawTotal < coupon.minOrderValue) {
       return res.status(400).json({
         valid: false,
         message: `এই কুপন ব্যবহারের জন্য ন্যূনতম ৳${coupon.minOrderValue.toLocaleString()} অর্ডার করতে হবে।`,
@@ -57,9 +60,9 @@ router.post('/validate', async (req: Request, res: Response) => {
     // Calculate discount
     let discountAmount = 0;
     if (coupon.discountType === 'flat') {
-      discountAmount = Math.min(coupon.discountValue, orderTotal);
+      discountAmount = Math.min(coupon.discountValue, rawTotal);
     } else {
-      discountAmount = Math.round((orderTotal * coupon.discountValue) / 100);
+      discountAmount = Math.round((rawTotal * coupon.discountValue) / 100);
     }
 
     return res.json({
