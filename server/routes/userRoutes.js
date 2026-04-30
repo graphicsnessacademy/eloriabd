@@ -14,7 +14,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const _authModule = require('../middleware/authMiddleware');
 const auth = _authModule.default || _authModule;
-const User = require('../models/User');
+const User = require('../models/User').default;
 
 // GET /api/user/profile - Fetch profile details
 router.get('/profile', auth, async (req, res) => {

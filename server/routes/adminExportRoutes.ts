@@ -13,7 +13,7 @@ router.get('/users/export', adminAuth(['super_admin', 'editor']), async (req: Re
     try {
         const { status, city } = req.query;
         let query: any = {};
-        
+
         if (status && status !== 'All') {
             query.status = status;
         }
@@ -22,13 +22,13 @@ router.get('/users/export', adminAuth(['super_admin', 'editor']), async (req: Re
         }
 
         const users = await User.find(query).lean();
-        
+
         const userIds = users.map(u => u._id);
         const orders = await Order.aggregate([
             { $match: { userId: { $in: userIds }, status: { $ne: 'Cancelled' } } },
             { $group: { _id: '$userId', count: { $sum: 1 }, totalSpent: { $sum: '$total' } } }
         ]);
-        
+
         const orderMap = new Map(orders.map(o => [o._id.toString(), o]));
 
         const data = users.map(u => {
@@ -68,7 +68,7 @@ router.get('/orders/export', adminAuth(['super_admin', 'editor']), async (req: R
         if (status && status !== 'All') {
             query.status = status;
         }
-        
+
         if (startDate && endDate) {
             query.createdAt = {
                 $gte: new Date(startDate as string),
@@ -109,20 +109,20 @@ router.get('/orders/export', adminAuth(['super_admin', 'editor']), async (req: R
 router.get('/analytics/report', adminAuth(['super_admin', 'editor']), async (req: Request, res: Response) => {
     try {
         const orders = await Order.find({ status: { $ne: 'Cancelled' } }).lean();
-        
+
         const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
         const avgOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
-        
+
         const labels: string[] = [];
         const salesData: number[] = [];
         for (let i = 6; i >= 0; i--) {
             const d = new Date();
             d.setDate(d.getDate() - i);
             labels.push(d.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }));
-            
-            const dayStart = new Date(d.setHours(0,0,0,0));
-            const dayEnd = new Date(d.setHours(23,59,59,999));
-            
+
+            const dayStart = new Date(d.setHours(0, 0, 0, 0));
+            const dayEnd = new Date(d.setHours(23, 59, 59, 999));
+
             const daySales = orders.filter(o => {
                 const od = new Date(o.createdAt);
                 return od >= dayStart && od <= dayEnd;
@@ -130,12 +130,12 @@ router.get('/analytics/report', adminAuth(['super_admin', 'editor']), async (req
             salesData.push(daySales);
         }
 
-        const productCounts: Record<string, {name: string, count: number, revenue: number}> = {};
+        const productCounts: Record<string, { name: string, count: number, revenue: number }> = {};
         orders.forEach(o => {
-            if(o.items) {
+            if (o.items) {
                 o.items.forEach(i => {
                     const idStr = i.productId.toString();
-                    if(!productCounts[idStr]) {
+                    if (!productCounts[idStr]) {
                         productCounts[idStr] = { name: i.name, count: 0, revenue: 0 };
                     }
                     productCounts[idStr].count += i.quantity;
@@ -143,7 +143,7 @@ router.get('/analytics/report', adminAuth(['super_admin', 'editor']), async (req
                 });
             }
         });
-        const topProducts = Object.values(productCounts).sort((a,b) => b.count - a.count).slice(0, 5);
+        const topProducts = Object.values(productCounts).sort((a, b) => b.count - a.count).slice(0, 5);
 
         const width = 800;
         const height = 400;
@@ -260,7 +260,7 @@ router.get('/analytics/report', adminAuth(['super_admin', 'editor']), async (req
             'Content-Length': pdf.length,
             'Content-Disposition': `attachment; filename=Eloria-Executive-Report-${new Date().toISOString().split('T')[0]}.pdf`
         });
-        
+
         res.send(pdf);
 
     } catch (error) {
