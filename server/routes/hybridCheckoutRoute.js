@@ -25,8 +25,8 @@ const Order = require('../models/Order').default || require('../models/Order');
 const OtpStore = require('../models/OtpStore').default || require('../models/OtpStore');
 const Coupon = require('../models/Coupon').default || require('../models/Coupon');
 
-// Initialize Resend with API Key from .env
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Resend is initialized lazily inside sendOtp to avoid crashing
+// the server on startup if RESEND_API_KEY is missing in the environment.
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -120,6 +120,12 @@ const sendOtp = async (phone, email, otpCode) => {
         // Terminal log for local testing/debugging
         console.log(`\n[OTP] Code: ${otpCode} | Sent To: ${email}\n`);
 
+        const apiKey = process.env.RESEND_API_KEY;
+        if (!apiKey) {
+            console.warn('⚠️ RESEND_API_KEY is not set. Skipping OTP email.');
+            return;
+        }
+        const resend = new Resend(apiKey);
         const { data, error } = await resend.emails.send({
             from: 'Eloria BD <onboarding@resend.dev>', // Replace with your domain once verified
             to: [email],

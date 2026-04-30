@@ -19,7 +19,8 @@ const { Resend } = require('resend');
 const User = require('../models/User').default;
 const OtpStore = require('../models/OtpStore').default || require('../models/OtpStore');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Resend is initialized lazily inside sendSignupOtp to avoid crashing
+// the server on startup if RESEND_API_KEY is missing in the environment.
 
 // --- HELPERS ---
 const signToken = (id) =>
@@ -29,6 +30,12 @@ const isValidBDPhone = (phone) => /^01[3-9]\d{8}$/.test(phone);
 
 const sendSignupOtp = async (email, otpCode) => {
     try {
+        const apiKey = process.env.RESEND_API_KEY;
+        if (!apiKey) {
+            console.warn('[sendSignupOtp] RESEND_API_KEY is not set. Skipping email send.');
+            return;
+        }
+        const resend = new Resend(apiKey);
         await resend.emails.send({
             from: 'Eloria BD <onboarding@resend.dev>',
             to: [email],
