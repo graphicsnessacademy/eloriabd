@@ -36,6 +36,8 @@ interface SiteConfig {
       title: string;
       targetUrl: string;
       delay: number;
+      discount: number;
+      couponCode: string;
     };
   };
 }

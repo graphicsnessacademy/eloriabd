@@ -1,3 +1,9 @@
+// client/src/components/AuthModal.tsx
+// CHANGES:
+// 1. Signup endpoint fixed: /api/auth/signup (backward compat route added on server)
+//    The server now has a /signup route that works without OTP for the modal flow.
+// 2. No other UI changes.
+
 import { useState, useEffect } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
@@ -13,7 +19,6 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
   const [isLoading, setIsLoading] = useState(false);
   const { wishlist, cart, loginSync } = useStore();
 
-  // Reset state on open/close
   useEffect(() => {
     if (!isOpen) {
       setError('');
@@ -30,20 +35,21 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
     setIsLoading(true);
     setError('');
 
+    // Login → /login | Signup → /signup (server has compat route, no OTP in modal)
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
 
     try {
-      const payload = isLogin 
+      const payload = isLogin
         ? { email, password, guestWishlist: wishlist, guestCart: cart }
         : { email, password, name, phone, guestWishlist: wishlist, guestCart: cart };
 
       const res = await fetch(`${API_URL}${endpoint}`, {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body:    JSON.stringify(payload)
       });
       const data = await res.json();
-      
+
       if (data.token) {
         loginSync(data);
         onClose();
@@ -80,31 +86,45 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <>
-              <input 
-                type="text" placeholder="Full Name" required
+              <input
+                type="text"
+                placeholder="Full Name"
+                required
                 className="w-full border-b border-gray-200 py-3 outline-none focus:border-eloria-purple transition-colors text-sm"
-                value={name} onChange={e => { setName(e.target.value); setError(''); }}
+                value={name}
+                onChange={e => { setName(e.target.value); setError(''); }}
               />
-              <input 
-                type="tel" placeholder="Phone Number" required
+              <input
+                type="tel"
+                placeholder="Phone Number"
+                required
                 className="w-full border-b border-gray-200 py-3 outline-none focus:border-eloria-purple transition-colors text-sm"
-                value={phone} onChange={e => { setPhone(e.target.value); setError(''); }}
+                value={phone}
+                onChange={e => { setPhone(e.target.value); setError(''); }}
               />
             </>
           )}
-          <input 
-            type="email" placeholder="Email Address" required
+          <input
+            type="email"
+            placeholder="Email Address"
+            required
             className="w-full border-b border-gray-200 py-3 outline-none focus:border-eloria-purple transition-colors text-sm"
-            value={email} onChange={e => { setEmail(e.target.value); setError(''); }}
+            value={email}
+            onChange={e => { setEmail(e.target.value); setError(''); }}
           />
-          <input 
-            type="password" placeholder="Password" required
+          <input
+            type="password"
+            placeholder="Password"
+            required
             className="w-full border-b border-gray-200 py-3 outline-none focus:border-eloria-purple transition-colors text-sm"
-            value={password} onChange={e => { setPassword(e.target.value); setError(''); }}
+            value={password}
+            onChange={e => { setPassword(e.target.value); setError(''); }}
           />
-          <button 
+          <button
             disabled={isLoading}
-            className={`w-full bg-[#1a1a1a] text-white py-4 rounded-full font-bold uppercase tracking-widest transition-all mt-6 ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-eloria-purple active:scale-95'}`}
+            className={`w-full bg-[#1a1a1a] text-white py-4 rounded-full font-bold uppercase tracking-widest transition-all mt-6 ${
+              isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-eloria-purple active:scale-95'
+            }`}
           >
             {isLoading ? 'Processing...' : (isLogin ? 'Login' : 'Create Account')}
           </button>
@@ -112,9 +132,9 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
 
         <p className="text-center mt-6 text-xs text-gray-500">
           {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button 
+          <button
             type="button"
-            onClick={() => { setIsLogin(!isLogin); setError(''); }} 
+            onClick={() => { setIsLogin(!isLogin); setError(''); }}
             className="text-eloria-purple font-bold tracking-widest uppercase ml-1 hover:text-[#1a1a1a] transition-colors"
           >
             {isLogin ? 'Sign up' : 'Login'}

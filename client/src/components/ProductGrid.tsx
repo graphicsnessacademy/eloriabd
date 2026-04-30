@@ -47,6 +47,7 @@ export default function ProductGrid({
             <div className="relative aspect-[16/7] lg:aspect-auto lg:h-full min-h-[180px]">
               <img
                 src={featureImage}
+                loading="lazy"
                 className="absolute inset-0 w-full h-full object-cover object-top"
                 alt="feature"
               />

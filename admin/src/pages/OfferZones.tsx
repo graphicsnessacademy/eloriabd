@@ -19,7 +19,7 @@ interface HeroSlide {
 const DEFAULT_ZONES = {
   hero: [] as HeroSlide[],
   countdown: { isActive: false, offerName: '', description: '', bgImage: '', expiresAt: '' },
-  popup: { isActive: false, image: '', title: '', targetUrl: '/shop', delay: 3 },
+  popup: { isActive: false, title: 'Off Your First Order', targetUrl: '/shop', delay: 3, discount: 15, couponCode: 'ELORIA15' },
 };
 
 const inputCls = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#534AB7] focus:ring-1 focus:ring-[#534AB7]/20 transition-all";
@@ -57,11 +57,12 @@ export const OfferZones = () => {
               : '',
           },
           popup: {
-            isActive:  oz.popup?.isActive  ?? false,
-            image:     oz.popup?.image     ?? '',
-            title:     oz.popup?.title     ?? '',
-            targetUrl: oz.popup?.targetUrl ?? '/shop',
-            delay:     oz.popup?.delay     ?? 3,
+            isActive:   oz.popup?.isActive   ?? false,
+            title:      oz.popup?.title      ?? 'Off Your First Order',
+            targetUrl:  oz.popup?.targetUrl  ?? '/shop',
+            delay:      oz.popup?.delay      ?? 3,
+            discount:   oz.popup?.discount   ?? 15,
+            couponCode: oz.popup?.couponCode ?? 'ELORIA15',
           },
         });
       }
@@ -177,11 +178,6 @@ export const OfferZones = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className={labelCls}>Promo badge text</label>
-                      <input className={inputCls} placeholder="e.g. Up to 65% Off" value={slide.promoBadge}
-                        onChange={e => setHeroField(i, 'promoBadge', e.target.value)} />
-                    </div>
-                    <div>
                       <label className={labelCls}>Year / sub-label</label>
                       <input className={inputCls} placeholder="2026" value={slide.yearLabel}
                         onChange={e => setHeroField(i, 'yearLabel', e.target.value)} />
@@ -277,28 +273,53 @@ export const OfferZones = () => {
           }
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Discount % — shown as the big shimmer number in the popup */}
             <div>
-              <label className={labelCls}>Popup title</label>
-              <input className={inputCls} placeholder="Special Offer" value={zones.popup.title}
-                onChange={e => setZones(z => ({ ...z, popup: { ...z.popup, title: e.target.value } }))} />
+              <label className={labelCls}>Discount % (big number shown on popup)</label>
+              <input
+                type="number" min={1} max={100} className={inputCls}
+                placeholder="15"
+                value={zones.popup.discount}
+                onChange={e => setZones(z => ({ ...z, popup: { ...z.popup, discount: Number(e.target.value) } }))}
+              />
             </div>
+            {/* Coupon code — shown in the golden badge */}
+            <div>
+              <label className={labelCls}>Coupon code (displayed in golden badge)</label>
+              <input
+                className={inputCls}
+                placeholder="ELORIA15"
+                value={zones.popup.couponCode}
+                onChange={e => setZones(z => ({ ...z, popup: { ...z.popup, couponCode: e.target.value } }))}
+              />
+            </div>
+            {/* Subtitle — shown in italic below the % */}
+            <div className="md:col-span-2">
+              <label className={labelCls}>Subtitle (italic text below the discount number)</label>
+              <input
+                className={inputCls}
+                placeholder="Off Your First Order"
+                value={zones.popup.title}
+                onChange={e => setZones(z => ({ ...z, popup: { ...z.popup, title: e.target.value } }))}
+              />
+            </div>
+            {/* CTA link */}
             <div>
               <label className={labelCls}>Button link (target URL)</label>
-              <input className={inputCls} placeholder="/shop" value={zones.popup.targetUrl}
-                onChange={e => setZones(z => ({ ...z, popup: { ...z.popup, targetUrl: e.target.value } }))} />
+              <input
+                className={inputCls}
+                placeholder="/shop"
+                value={zones.popup.targetUrl}
+                onChange={e => setZones(z => ({ ...z, popup: { ...z.popup, targetUrl: e.target.value } }))}
+              />
             </div>
+            {/* Delay */}
             <div>
               <label className={labelCls}>Delay before showing (seconds)</label>
-              <input type="number" min={0} max={60} className={inputCls} value={zones.popup.delay}
-                onChange={e => setZones(z => ({ ...z, popup: { ...z.popup, delay: Number(e.target.value) } }))} />
-            </div>
-            <div />
-            <div className="md:col-span-2">
-              <label className={labelCls}>Popup image (recommended 600×400 or 4:3)</label>
-              <ImageUpload
-                value={imgItems(zones.popup.image)}
-                onChange={imgs => setZones(z => ({ ...z, popup: { ...z.popup, image: imgs[0]?.url || '' } }))}
-                maxFiles={1}
+              <input
+                type="number" min={0} max={60} className={inputCls}
+                value={zones.popup.delay}
+                onChange={e => setZones(z => ({ ...z, popup: { ...z.popup, delay: Number(e.target.value) } }))}
               />
             </div>
           </div>
