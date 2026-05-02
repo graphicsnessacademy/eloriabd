@@ -1,10 +1,13 @@
-// PERFORMANCE FIXES:
-// 1. Removed the full-screen loading blocker — app renders immediately,
-//    products stream in when ready (pages show skeleton/empty state instead)
-// 2. stale-while-revalidate cache — products stored in sessionStorage so
-//    repeat visits within the same tab are instant (no network wait)
-// 3. Switched from fetch() to the shared axios instance so base URL and
-//    interceptors are consistent with the rest of the app
+// client/src/App.tsx
+// PERFORMANCE CHANGES:
+// 1. Switched from sessionStorage → localStorage — sessionStorage clears on tab
+//    close so every new tab was a cold fetch. localStorage persists across sessions,
+//    making repeat visits truly instant.
+// 2. Cache TTL increased from 5 min → 10 min — products don't change every 5 min.
+// 3. Stale-while-revalidate pattern preserved — show cached data IMMEDIATELY,
+//    then silently refresh in background so next visit gets fresh data.
+// 4. Added cache version key — increment CACHE_VER when product schema changes
+//    to bust stale cache automatically without touching user's browser manually.
 
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
@@ -24,8 +27,35 @@ import { SiteConfigProvider } from './context/SiteConfigContext';
 import { trackEvent } from './utils/tracker';
 import { api } from './api/axios';
 
-const CACHE_KEY = 'eloria_products_cache';
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+// Bump CACHE_VER when the product schema changes to auto-bust stale cache
+const CACHE_VER = 'v2';
+const CACHE_KEY = `eloria_products_${CACHE_VER}`;
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+function readCache(): any[] {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return [];
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts < CACHE_TTL && Array.isArray(data) && data.length > 0) return data;
+  } catch { /* parse error — ignore */ }
+  return [];
+}
+
+function writeCache(data: any[]) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+  } catch { /* quota exceeded — ignore */ }
+}
+
+function isCacheFresh(): boolean {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return false;
+    const { data, ts } = JSON.parse(raw);
+    return Date.now() - ts < CACHE_TTL && Array.isArray(data) && data.length > 0;
+  } catch { return false; }
+}
 
 function PageTracker() {
   const location = useLocation();
@@ -36,43 +66,33 @@ function PageTracker() {
 }
 
 export default function App() {
-  const [products, setProducts] = useState<any[]>(() => {
-    // Initialise from cache so products are available synchronously on first render
-    try {
-      const cached = sessionStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const { data, ts } = JSON.parse(cached);
-        if (Date.now() - ts < CACHE_TTL && Array.isArray(data) && data.length > 0) return data;
-      }
-    } catch {
-      // ignore parse errors
-    }
-    return [];
-  });
+  // Initialise synchronously from cache — products available on first render,
+  // no loading state, no blank screen, no spinner.
+  const [products, setProducts] = useState<any[]>(() => readCache());
 
   useEffect(() => {
-    // Check if cache is still fresh — skip network call if so
-    try {
-      const cached = sessionStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const { data, ts } = JSON.parse(cached);
-        if (Date.now() - ts < CACHE_TTL && Array.isArray(data) && data.length > 0) return; // cache hit — no fetch needed
-      }
-    } catch { /* ignore */ }
+    // If cache is still fresh — show stale data immediately, fetch in background
+    // so the NEXT visit gets updated data (stale-while-revalidate).
+    const fetchProducts = () => {
+      api.get('/api/products')
+        .then(res => {
+          if (Array.isArray(res.data) && res.data.length > 0) {
+            setProducts(res.data);
+            writeCache(res.data);
+          }
+        })
+        .catch(err => console.error('[App] Products fetch error:', err));
+    };
 
-    // Fetch in background — does NOT block render
-    api.get('/api/products')
-      .then(res => {
-        setProducts(res.data);
-        try {
-          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: res.data, ts: Date.now() }));
-        } catch { /* quota exceeded — ignore */ }
-      })
-      .catch(err => console.error('Products fetch error:', err));
+    if (isCacheFresh()) {
+      // Cache hit — show instantly, but revalidate silently in background
+      // so cache is refreshed before it expires
+      fetchProducts();
+    } else {
+      // Cache miss or expired — fetch immediately
+      fetchProducts();
+    }
   }, []);
-
-  // NO loading spinner — app renders immediately with empty products ([])
-  // Each page handles its own empty/skeleton state
 
   return (
     <SiteConfigProvider>
@@ -83,15 +103,15 @@ export default function App() {
           <Header />
           <PopupAd />
           <Routes>
-            <Route path="/" element={<HomePage products={products} />} />
-            <Route path="/shop" element={<ShopPage products={products} />} />
-            <Route path="/shop/:category" element={<ShopPage products={products} />} />
-            <Route path="/search" element={<SearchPage products={products} />} />
-            <Route path="/wishlist" element={<WishlistPage products={products} />} />
-            <Route path="/product/:id" element={<ProductDetailPage products={products} />} />
-            <Route path="/account" element={<AccountPage products={products} />} />
-            <Route path="/checkout" element={<CheckoutPage />} />
-            <Route path="/pages/:slug" element={<StaticPage />} />
+            <Route path="/"             element={<HomePage        products={products} />} />
+            <Route path="/shop"         element={<ShopPage        products={products} />} />
+            <Route path="/shop/:category" element={<ShopPage      products={products} />} />
+            <Route path="/search"       element={<SearchPage      products={products} />} />
+            <Route path="/wishlist"     element={<WishlistPage    products={products} />} />
+            <Route path="/product/:id"  element={<ProductDetailPage products={products} />} />
+            <Route path="/account"      element={<AccountPage     products={products} />} />
+            <Route path="/checkout"     element={<CheckoutPage />} />
+            <Route path="/pages/:slug"  element={<StaticPage />} />
           </Routes>
           <Footer />
         </div>

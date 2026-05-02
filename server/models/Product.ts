@@ -1,9 +1,12 @@
 // server/models/Product.ts
-// CHANGES:
-// 1. Added relatedProducts as ObjectId array ref
-// 2. Added totalStock field to interface + schema
-// 3. Pre-save hook: stock = totalStock = sum of variants; low-stock notification if < 3
-// 4. _id is default ObjectId — no custom ID generation
+// PERFORMANCE CHANGES:
+// 1. Added 5 compound indexes — eliminates full collection scans
+//    - { isDeleted, createdAt } covers GET /api/products (main listing)
+//    - { category, isDeleted }  covers shop page category filtering
+//    - { isNewProduct, isDeleted } covers homepage New Arrivals section
+//    - { isBestSeller, isDeleted } covers homepage Best Seller section
+//    - { name: 'text' }           covers search
+// Without these, MongoDB scans every document on every request.
 
 import mongoose, { Document, Schema } from 'mongoose';
 
@@ -19,7 +22,7 @@ export interface IProduct extends Document {
     publicId: string;
     isPrimary: boolean;
   }>;
-  image?: string; // Legacy fallback
+  image?: string;
   variants: Array<{
     size: string;
     color: string;
@@ -59,7 +62,7 @@ const ProductSchema: Schema = new Schema(
       publicId:  { type: String, required: true },
       isPrimary: { type: Boolean, default: false }
     }],
-    image: { type: String }, // Legacy
+    image: { type: String },
 
     variants: [{
       size:  { type: String, required: true },
@@ -71,9 +74,9 @@ const ProductSchema: Schema = new Schema(
     totalStock: { type: Number, default: 0 },
     inStock:    { type: Boolean, default: true },
 
-    isNewProduct:  { type: Boolean, default: false },
-    isBestSeller:  { type: Boolean, default: false },
-    isDeleted:     { type: Boolean, default: false },
+    isNewProduct:    { type: Boolean, default: false },
+    isBestSeller:    { type: Boolean, default: false },
+    isDeleted:       { type: Boolean, default: false },
 
     relatedProducts: [{ type: Schema.Types.ObjectId, ref: 'Product' }],
 
@@ -90,12 +93,30 @@ const ProductSchema: Schema = new Schema(
   { timestamps: true }
 );
 
-// Pre-save hook:
-//   1. totalStock = sum of all variant stocks
-//   2. stock = totalStock (keep both in sync)
-//   3. inStock = totalStock > 0
-//   4. image synced from primary image
-//   5. low-stock notification if totalStock < 3
+// ─── INDEXES ──────────────────────────────────────────────────────────────────
+// These are the single most impactful performance change.
+// Without indexes every Product.find() is an O(n) full collection scan.
+// With indexes MongoDB resolves queries in O(log n) using a B-tree.
+
+// Covers: GET /api/products → find({ isDeleted: {$ne:true} }).sort({ createdAt: -1 })
+ProductSchema.index({ isDeleted: 1, createdAt: -1 });
+
+// Covers: shop page category filter → find({ category, isDeleted })
+ProductSchema.index({ category: 1, isDeleted: 1 });
+
+// Covers: homepage New Arrivals section
+ProductSchema.index({ isNewProduct: 1, isDeleted: 1 });
+
+// Covers: homepage Best Seller section
+ProductSchema.index({ isBestSeller: 1, isDeleted: 1 });
+
+// Covers: inStock filtering in shop
+ProductSchema.index({ inStock: 1, isDeleted: 1 });
+
+// Covers: text search on search page
+ProductSchema.index({ name: 'text', description: 'text' });
+
+// ─── PRE-SAVE HOOK ────────────────────────────────────────────────────────────
 ProductSchema.pre<IProduct>('save', function () {
   if (this.variants && this.variants.length > 0) {
     this.totalStock = this.variants.reduce(
@@ -115,9 +136,7 @@ ProductSchema.pre<IProduct>('save', function () {
   }
 
   if (this.totalStock < 3) {
-    console.warn(
-      `⚠️  LOW STOCK ALERT: "${this.name}" has only ${this.totalStock} unit(s) left.`
-    );
+    console.warn(`⚠️  LOW STOCK ALERT: "${this.name}" has only ${this.totalStock} unit(s) left.`);
   }
 });
 
